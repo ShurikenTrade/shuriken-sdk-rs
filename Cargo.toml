@@ -1,0 +1,23 @@
+[package]
+name = "shuriken-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Rust SDK for the Shuriken API"
+license = "MIT"
+
+[features]
+default = []
+ws = ["dep:tokio-tungstenite", "dep:futures-util", "dep:tracing"]
+
+[dependencies]
+shuriken-api-types = { git = "ssh://git@github.com/ShurikenTrade/shuriken-api-types-rs", tag = "v0.1.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+thiserror = "2"
+
+# ws feature dependencies
+tokio-tungstenite = { version = "0.26", features = ["native-tls"], optional = true }
+futures-util = { version = "0.3", optional = true }
+tracing = { version = "0.1", optional = true }
