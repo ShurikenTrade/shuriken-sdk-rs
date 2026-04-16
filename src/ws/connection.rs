@@ -12,9 +12,7 @@ use crate::error::ShurikenError;
 use super::types::*;
 
 type WsSink = futures_util::stream::SplitSink<
-    tokio_tungstenite::WebSocketStream<
-        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-    >,
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
     Message,
 >;
 
@@ -261,11 +259,19 @@ impl WsHandle {
 
     // ── Internal ────────────────────────────────────────────────────────────
 
-    async fn http_post(&self, path: &str, body: &impl serde::Serialize) -> Result<serde_json::Value, ShurikenError> {
+    async fn http_post(
+        &self,
+        path: &str,
+        body: &impl serde::Serialize,
+    ) -> Result<serde_json::Value, ShurikenError> {
         let url = format!("{}{path}", self.base_url);
         let resp = self.http.post(&url).json(body).send().await?;
         let status = resp.status();
-        let request_id = resp.headers().get("x-request-id").and_then(|v| v.to_str().ok()).map(|s| s.to_string());
+        let request_id = resp
+            .headers()
+            .get("x-request-id")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
 
         if status == reqwest::StatusCode::UNAUTHORIZED {
             return Err(ShurikenError::Auth(resp.text().await.unwrap_or_default()));
@@ -280,15 +286,27 @@ impl WsHandle {
         Ok(resp.json().await?)
     }
 
-    async fn fetch_session(&self, filters: &[SubscriptionFilter]) -> Result<SessionResponse, ShurikenError> {
-        let value = self.http_post("/api/v2/ws/session", &serde_json::json!({ "subscriptions": filters })).await?;
+    async fn fetch_session(
+        &self,
+        filters: &[SubscriptionFilter],
+    ) -> Result<SessionResponse, ShurikenError> {
+        let value = self
+            .http_post(
+                "/api/v2/ws/session",
+                &serde_json::json!({ "subscriptions": filters }),
+            )
+            .await?;
         serde_json::from_value(value).map_err(ShurikenError::from)
     }
 
-    async fn expand_session(&self, new_filters: &[SubscriptionFilter]) -> Result<(), ShurikenError> {
+    async fn expand_session(
+        &self,
+        new_filters: &[SubscriptionFilter],
+    ) -> Result<(), ShurikenError> {
         let all_filters = {
             let subs = self.subscriptions.lock().await;
-            let mut filters: Vec<SubscriptionFilter> = subs.iter().map(|s| s.filter.clone()).collect();
+            let mut filters: Vec<SubscriptionFilter> =
+                subs.iter().map(|s| s.filter.clone()).collect();
             for f in new_filters {
                 let key = (&f.stream, &f.filter);
                 if !filters.iter().any(|e| (&e.stream, &e.filter) == key) {
@@ -306,11 +324,18 @@ impl WsHandle {
             if sub.resolved.is_some() {
                 continue;
             }
-            if let Some(resolved) = new_session.subscriptions.iter().find(|r| r.stream == sub.filter.stream) {
+            if let Some(resolved) = new_session
+                .subscriptions
+                .iter()
+                .find(|r| r.stream == sub.filter.stream)
+            {
                 sub.channel = resolved.channel.clone();
                 sub.event = resolved.event.clone();
                 sub.resolved = Some(resolved.clone());
-                if let Err(e) = self.pusher_subscribe(&resolved.channel, &resolved.visibility).await {
+                if let Err(e) = self
+                    .pusher_subscribe(&resolved.channel, &resolved.visibility)
+                    .await
+                {
                     warn!("Failed to subscribe to channel {}: {e}", resolved.channel);
                 }
             }
@@ -319,30 +344,55 @@ impl WsHandle {
     }
 
     async fn pusher_subscribe(&self, channel: &str, visibility: &str) -> Result<(), ShurikenError> {
-        let auth = if visibility == "presence" || channel.starts_with("private-") || channel.starts_with("presence-") {
-            let socket_id = self.socket_id.read().await.clone()
+        let auth = if visibility == "presence"
+            || channel.starts_with("private-")
+            || channel.starts_with("presence-")
+        {
+            let socket_id = self
+                .socket_id
+                .read()
+                .await
+                .clone()
                 .ok_or_else(|| ShurikenError::Session("No socket_id".into()))?;
-            let auth_endpoint = self.session.read().await.as_ref()
+            let auth_endpoint = self
+                .session
+                .read()
+                .await
+                .as_ref()
                 .map(|s| s.connection.auth_endpoint.clone())
                 .ok_or_else(|| ShurikenError::Session("No session".into()))?;
-            let value = self.http_post(&auth_endpoint, &serde_json::json!({
-                "socket_id": socket_id,
-                "channel_name": channel,
-            })).await?;
-            Some(value["auth"].as_str()
-                .ok_or_else(|| ShurikenError::Session("Missing auth in response".into()))?
-                .to_string())
+            let value = self
+                .http_post(
+                    &auth_endpoint,
+                    &serde_json::json!({
+                        "socket_id": socket_id,
+                        "channel_name": channel,
+                    }),
+                )
+                .await?;
+            Some(
+                value["auth"]
+                    .as_str()
+                    .ok_or_else(|| ShurikenError::Session("Missing auth in response".into()))?
+                    .to_string(),
+            )
         } else {
             None
         };
 
         let msg = serde_json::to_string(&PusherSubscribe {
             event: "pusher:subscribe",
-            data: PusherSubscribeData { channel: channel.to_string(), auth, channel_data: None },
-        }).map_err(|e| ShurikenError::Session(format!("Serialize error: {e}")))?;
+            data: PusherSubscribeData {
+                channel: channel.to_string(),
+                auth,
+                channel_data: None,
+            },
+        })
+        .map_err(|e| ShurikenError::Session(format!("Serialize error: {e}")))?;
 
         if let Some(sink) = self.sink.lock().await.as_mut() {
-            sink.send(Message::Text(msg.into())).await
+            sink.send(Message::Text(msg.into()))
+                .await
                 .map_err(|e| ShurikenError::Session(format!("Send error: {e}")))?;
         }
         Ok(())
@@ -361,7 +411,10 @@ async fn emit(
 ) {
     *state.write().await = new_state;
     let handlers = handlers.lock().await;
-    let event = ConnectionStateEvent { state: new_state, reason };
+    let event = ConnectionStateEvent {
+        state: new_state,
+        reason,
+    };
     for h in handlers.iter() {
         h(event.clone());
     }

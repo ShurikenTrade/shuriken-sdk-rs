@@ -213,7 +213,7 @@ pub struct GetPerpPositionsParams {
     pub wallet_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaceOrderParams {
     pub wallet_id: String,

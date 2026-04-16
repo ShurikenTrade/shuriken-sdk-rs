@@ -57,7 +57,7 @@ pub struct TriggerOrdersResponse {
 
 // ── Request types ───────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTriggerOrderParams {
     pub chain: String,

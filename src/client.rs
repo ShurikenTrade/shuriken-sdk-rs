@@ -42,7 +42,7 @@ impl ShurikenClient {
     }
 
     pub(crate) async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, ShurikenError> {
-        let resp = self.http.get(&self.url(path)).send().await?;
+        let resp = self.http.get(self.url(path)).send().await?;
         self.handle_response(resp).await
     }
 
@@ -51,7 +51,7 @@ impl ShurikenClient {
         path: &str,
         query: &[(&str, String)],
     ) -> Result<T, ShurikenError> {
-        let resp = self.http.get(&self.url(path)).query(query).send().await?;
+        let resp = self.http.get(self.url(path)).query(query).send().await?;
         self.handle_response(resp).await
     }
 
@@ -60,7 +60,7 @@ impl ShurikenClient {
         path: &str,
         body: &impl serde::Serialize,
     ) -> Result<T, ShurikenError> {
-        let resp = self.http.post(&self.url(path)).json(body).send().await?;
+        let resp = self.http.post(self.url(path)).json(body).send().await?;
         self.handle_response(resp).await
     }
 
@@ -69,7 +69,7 @@ impl ShurikenClient {
         path: &str,
         body: &impl serde::Serialize,
     ) -> Result<T, ShurikenError> {
-        let resp = self.http.put(&self.url(path)).json(body).send().await?;
+        let resp = self.http.put(self.url(path)).json(body).send().await?;
         self.handle_response(resp).await
     }
 
@@ -78,15 +78,12 @@ impl ShurikenClient {
         path: &str,
         body: &impl serde::Serialize,
     ) -> Result<T, ShurikenError> {
-        let resp = self.http.patch(&self.url(path)).json(body).send().await?;
+        let resp = self.http.patch(self.url(path)).json(body).send().await?;
         self.handle_response(resp).await
     }
 
-    pub(crate) async fn delete<T: DeserializeOwned>(
-        &self,
-        path: &str,
-    ) -> Result<T, ShurikenError> {
-        let resp = self.http.delete(&self.url(path)).send().await?;
+    pub(crate) async fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T, ShurikenError> {
+        let resp = self.http.delete(self.url(path)).send().await?;
         self.handle_response(resp).await
     }
 
@@ -95,7 +92,7 @@ impl ShurikenClient {
         path: &str,
         body: &impl serde::Serialize,
     ) -> Result<T, ShurikenError> {
-        let resp = self.http.delete(&self.url(path)).json(body).send().await?;
+        let resp = self.http.delete(self.url(path)).json(body).send().await?;
         self.handle_response(resp).await
     }
 
