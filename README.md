@@ -8,10 +8,10 @@ Rust SDK for the [Shuriken](https://app.shuriken.trade) API.
 
 ```toml
 [dependencies]
-shuriken-sdk = { git = "ssh://git@github.com/ShurikenTrade/shuriken-sdk-rs" }
+shuriken-sdk = { git = "https://github.com/ShurikenTrade/shuriken-sdk-rs" }
 
 # Enable WebSocket streams:
-# shuriken-sdk = { git = "ssh://git@github.com/ShurikenTrade/shuriken-sdk-rs", features = ["ws"] }
+# shuriken-sdk = { git = "https://github.com/ShurikenTrade/shuriken-sdk-rs", features = ["ws"] }
 ```
 
 ## Quick start

@@ -1114,7 +1114,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "shuriken-api-types"
 version = "0.1.0"
-source = "git+ssh://git@github.com/ShurikenTrade/shuriken-api-types-rs?tag=v0.1.0#322153a59f0b76016a0366dc577c91905ec8e1ec"
+source = "git+https://github.com/ShurikenTrade/shuriken-api-types-rs?tag=v0.1.0#322153a59f0b76016a0366dc577c91905ec8e1ec"
 dependencies = [
  "serde",
 ]

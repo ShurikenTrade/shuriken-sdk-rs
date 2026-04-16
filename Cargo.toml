@@ -10,7 +10,7 @@ default = []
 ws = ["dep:tokio-tungstenite", "dep:futures-util", "dep:tracing"]
 
 [dependencies]
-shuriken-api-types = { git = "ssh://git@github.com/ShurikenTrade/shuriken-api-types-rs", tag = "v0.1.0" }
+shuriken-api-types = { git = "https://github.com/ShurikenTrade/shuriken-api-types-rs", tag = "v0.1.0" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.12", features = ["json"] }
