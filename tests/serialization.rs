@@ -1,4 +1,5 @@
 use serde_json::json;
+use shuriken_sdk::types::Network;
 
 // ── API types deserialization ───────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ fn deserialize_svm_swap_event() {
     let event: shuriken_sdk::types::svm::SwapEvent = serde_json::from_value(data).unwrap();
     assert_eq!(event.token_mint, "So111");
     assert!(event.is_buy);
-    assert_eq!(event.network, "sol");
+    assert_eq!(event.network, Network::Sol);
 }
 
 #[test]
@@ -228,7 +229,7 @@ fn deserialize_evm_swap_event() {
     let event: shuriken_sdk::types::evm::SwapEvent = serde_json::from_value(data).unwrap();
     assert_eq!(event.chain_id, 8453);
     assert!(!event.is_buy);
-    assert_eq!(event.network, "base");
+    assert_eq!(event.network, Network::Base);
 }
 
 #[test]
@@ -270,7 +271,7 @@ fn deserialize_wallet_balance_events() {
     });
     let event: shuriken_sdk::types::wallet::EvmNativeBalanceEvent =
         serde_json::from_value(evm_data).unwrap();
-    assert_eq!(event.network, "eth");
+    assert_eq!(event.network, Network::Eth);
 }
 
 // ── Request serialization ───────────────────────────────────────────────────

@@ -4,13 +4,17 @@ version = "0.1.0"
 edition = "2021"
 description = "Rust SDK for the Shuriken API"
 license = "MIT"
+repository = "https://github.com/ShurikenTrade/shuriken-sdk-rs"
+homepage = "https://app.shuriken.trade"
+keywords = ["shuriken", "crypto", "trading", "api", "sdk"]
+categories = ["api-bindings"]
 
 [features]
 default = []
 ws = ["dep:tokio-tungstenite", "dep:futures-util", "dep:tracing"]
 
 [dependencies]
-shuriken-api-types = { git = "https://github.com/ShurikenTrade/shuriken-api-types-rs", tag = "v0.1.0" }
+shuriken-api-types = "0.1.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.12", features = ["json"] }
