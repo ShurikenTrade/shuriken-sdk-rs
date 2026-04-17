@@ -1,5 +1,7 @@
 # shuriken-sdk
 
+[![crates.io](https://img.shields.io/crates/v/shuriken-sdk)](https://crates.io/crates/shuriken-sdk)
+
 Rust SDK for the [Shuriken](https://app.shuriken.trade) API.
 
 > **Status:** Early development — API surface may change.
@@ -8,10 +10,10 @@ Rust SDK for the [Shuriken](https://app.shuriken.trade) API.
 
 ```toml
 [dependencies]
-shuriken-sdk = { git = "https://github.com/ShurikenTrade/shuriken-sdk-rs" }
+shuriken-sdk = "0.1"
 
 # Enable WebSocket streams:
-# shuriken-sdk = { git = "https://github.com/ShurikenTrade/shuriken-sdk-rs", features = ["ws"] }
+# shuriken-sdk = { version = "0.1", features = ["ws"] }
 ```
 
 ## Quick start
