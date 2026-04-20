@@ -129,6 +129,13 @@ pub struct AccountUsage {
     pub constraints: AgentKeyConstraints,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnableMultisendResponse {
+    pub task_id: String,
+    pub message: String,
+}
+
 // ── API methods ─────────────────────────────────────────────────────────────
 
 impl ShurikenClient {
@@ -153,5 +160,16 @@ impl ShurikenClient {
 
     pub async fn get_wallets(&self) -> Result<Vec<AccountWallet>, ShurikenError> {
         self.get("/api/v2/account/wallets").await
+    }
+
+    pub async fn enable_multisend(
+        &self,
+        wallet_id: &str,
+    ) -> Result<EnableMultisendResponse, ShurikenError> {
+        self.post(
+            &format!("/api/v2/account/wallets/{wallet_id}/enable-multisend"),
+            &serde_json::Value::Object(Default::default()),
+        )
+        .await
     }
 }

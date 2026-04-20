@@ -126,6 +126,10 @@ let me = client.get_me().await?;
 let wallets = client.get_wallets().await?;
 let usage = client.get_usage().await?;
 let settings = client.get_settings().await?;
+
+// Enable multisend (durable nonce) on a Solana wallet
+let resp = client.enable_multisend("wallet-id").await?;
+println!("Task ID: {}", resp.task_id);
 ```
 
 ## Trigger orders
