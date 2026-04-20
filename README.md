@@ -219,8 +219,8 @@ client.ws.disconnect().await;
 | `svm.token.balances` | `tokenAddress` | `types::svm::TokenBalanceEvent` |
 | `svm.wallet.nativeBalance` | `walletAddress` | `types::wallet::SvmNativeBalanceEvent` |
 | `svm.wallet.tokenBalances` | `walletAddress` | `types::wallet::SvmTokenBalanceEvent` |
-| `svm.bondingCurve.creations` | — | `types::svm::BondingCurveEvent` |
-| `svm.bondingCurve.graduations` | — | `types::svm::BondingCurveEvent` |
+| `svm.bondingCurve.creations` | — | `types::svm::BondingCurveCreationEvent` |
+| `svm.bondingCurve.graduations` | — | `types::svm::BondingCurveGraduationEvent` |
 | `evm.token.swaps` | `chainId`, `tokenAddress` | `types::evm::SwapEvent` |
 | `evm.token.poolInfo` | `chainId`, `tokenAddress` | `types::evm::TokenPoolEvent` |
 | `evm.token.balances` | `tokenAddress` | `types::evm::TokenBalanceEvent` |

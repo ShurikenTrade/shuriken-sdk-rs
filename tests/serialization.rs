@@ -233,17 +233,44 @@ fn deserialize_evm_swap_event() {
 }
 
 #[test]
-fn deserialize_svm_bonding_curve_event() {
+fn deserialize_svm_bonding_curve_creation_event() {
     let data = json!({
         "tokenAddress": "token1",
         "curveAddress": "curve1",
         "curveDexType": "pump",
-        "network": "sol",
-        "blockIndex": 12345
+        "creator": "creator1",
+        "signature": "sig1",
+        "slot": 300000000u64,
+        "blockTime": 1700000000i64,
+        "blockHeight": 250000000u64,
+        "blockHash": "hash1",
+        "network": "sol"
     });
-    let event: shuriken_sdk::types::svm::BondingCurveEvent = serde_json::from_value(data).unwrap();
+    let event: shuriken_sdk::types::svm::BondingCurveCreationEvent =
+        serde_json::from_value(data).unwrap();
     assert_eq!(event.curve_dex_type, "pump");
-    assert!(event.graduation_timestamp.is_none());
+    assert_eq!(event.curve_address, "curve1");
+}
+
+#[test]
+fn deserialize_svm_bonding_curve_graduation_event() {
+    let data = json!({
+        "tokenAddress": "token1",
+        "curveAddress": "curve1",
+        "curveDexType": "pump",
+        "destPoolAddress": "pool1",
+        "destPoolDexType": "raydium",
+        "signature": "sig1",
+        "slot": 300000000u64,
+        "blockTime": 1700000000i64,
+        "blockHeight": 250000000u64,
+        "blockHash": "hash1",
+        "network": "sol"
+    });
+    let event: shuriken_sdk::types::svm::BondingCurveGraduationEvent =
+        serde_json::from_value(data).unwrap();
+    assert_eq!(event.curve_dex_type, "pump");
+    assert_eq!(event.dest_pool_dex_type, "raydium");
 }
 
 #[test]
