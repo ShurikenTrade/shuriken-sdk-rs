@@ -160,6 +160,10 @@ impl TokensApi<'_> {
         &self,
         params: &SearchTokensParams,
     ) -> Result<Vec<TokenInfo>, ShurikenError> {
+        #[derive(Deserialize)]
+        struct Wrapper {
+            tokens: Vec<TokenInfo>,
+        }
         let mut query = vec![("q", params.q.clone())];
         if let Some(chain) = &params.chain {
             query.push(("chain", chain.clone()));
@@ -170,7 +174,11 @@ impl TokensApi<'_> {
         if let Some(limit) = params.limit {
             query.push(("limit", limit.to_string()));
         }
-        self.0.get_with_query("/api/v2/tokens/search", &query).await
+        let wrapper: Wrapper = self
+            .0
+            .get_with_query("/api/v2/tokens/search", &query)
+            .await?;
+        Ok(wrapper.tokens)
     }
 
     pub async fn batch(&self, tokens: &[String]) -> Result<BatchTokensResponse, ShurikenError> {

@@ -115,19 +115,29 @@ impl PortfolioApi<'_> {
         &self,
         params: &GetBalancesParams,
     ) -> Result<Vec<WalletBalance>, ShurikenError> {
+        #[derive(Deserialize)]
+        struct Wrapper {
+            wallets: Vec<WalletBalance>,
+        }
         let mut query = Vec::new();
         if let Some(chain) = &params.chain {
             query.push(("chain", chain.clone()));
         }
-        self.0
+        let wrapper: Wrapper = self
+            .0
             .get_with_query("/api/v2/portfolio/balances", &query)
-            .await
+            .await?;
+        Ok(wrapper.wallets)
     }
 
     pub async fn get_history(
         &self,
         params: &GetHistoryParams,
     ) -> Result<Vec<PortfolioTrade>, ShurikenError> {
+        #[derive(Deserialize)]
+        struct Wrapper {
+            trades: Vec<PortfolioTrade>,
+        }
         let mut query = Vec::new();
         if let Some(chain) = &params.chain {
             query.push(("chain", chain.clone()));
@@ -138,9 +148,11 @@ impl PortfolioApi<'_> {
         if let Some(limit) = params.limit {
             query.push(("limit", limit.to_string()));
         }
-        self.0
+        let wrapper: Wrapper = self
+            .0
             .get_with_query("/api/v2/portfolio/history", &query)
-            .await
+            .await?;
+        Ok(wrapper.trades)
     }
 
     pub async fn get_pnl(&self, params: &GetPnlParams) -> Result<PortfolioPnl, ShurikenError> {

@@ -369,3 +369,40 @@ fn http_client_with_base_url() {
         shuriken_sdk::ShurikenHttpClient::with_base_url("sk_test", "https://staging.example.com/");
     assert!(client.is_ok());
 }
+
+#[test]
+fn deserialize_swap_preset_evm() {
+    let data = serde_json::json!({
+        "type": "evm",
+        "slippageBps": 1500,
+        "maxPriceImpactPct": 10.0,
+        "bribeAmountNative": "0",
+        "mevProtectionEnabled": true
+    });
+    let preset: shuriken_sdk::account::SwapPreset = serde_json::from_value(data).unwrap();
+    match preset {
+        shuriken_sdk::account::SwapPreset::Evm { slippage_bps, .. } => {
+            assert_eq!(slippage_bps, 1500);
+        }
+        _ => panic!("expected Evm variant"),
+    }
+}
+
+#[test]
+fn deserialize_swap_preset_solana() {
+    let data = serde_json::json!({
+        "type": "solana",
+        "slippageBps": 1500,
+        "customPriorityFeeSol": "0.001",
+        "bribeAmountSol": "0.001",
+        "maxPriceImpactPct": 10.0,
+        "mevProtectionEnabled": true
+    });
+    let preset: shuriken_sdk::account::SwapPreset = serde_json::from_value(data).unwrap();
+    match preset {
+        shuriken_sdk::account::SwapPreset::Solana { slippage_bps, .. } => {
+            assert_eq!(slippage_bps, 1500);
+        }
+        _ => panic!("expected Solana variant"),
+    }
+}

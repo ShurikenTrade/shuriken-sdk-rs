@@ -25,7 +25,7 @@ pub struct AccountWallet {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum SwapPreset {
-    #[serde(rename = "solana")]
+    #[serde(rename = "solana", rename_all = "camelCase")]
     Solana {
         slippage_bps: u32,
         mev_protection_enabled: bool,
@@ -33,7 +33,7 @@ pub enum SwapPreset {
         bribe_amount_sol: Option<String>,
         max_price_impact_pct: Option<f64>,
     },
-    #[serde(rename = "evm")]
+    #[serde(rename = "evm", rename_all = "camelCase")]
     Evm {
         slippage_bps: u32,
         mev_protection_enabled: bool,
@@ -109,7 +109,9 @@ pub struct AgentKeyConstraints {
     pub max_limit_orders_per_day: u32,
     pub allow_custom_gas: bool,
     pub allow_bribes: bool,
+    #[serde(default)]
     pub allowed_networks: Vec<u32>,
+    #[serde(default)]
     pub allowed_wallet_ids: Vec<String>,
     pub max_buy_usd_per_trade: Option<f64>,
     pub max_buy_usd_per_day: Option<f64>,

@@ -149,6 +149,11 @@ impl ShurikenHttpClient {
             });
         }
 
-        Ok(resp.json().await?)
+        let body: serde_json::Value = resp.json().await?;
+        let payload = match body.get("data") {
+            Some(data) => data.clone(),
+            None => body,
+        };
+        Ok(serde_json::from_value(payload)?)
     }
 }
