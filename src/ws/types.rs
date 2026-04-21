@@ -48,23 +48,6 @@ pub struct SessionResponse {
     pub subscriptions: Vec<ResolvedSubscription>,
 }
 
-// ── Connection state ────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConnectionState {
-    Disconnected,
-    Connecting,
-    Connected,
-    Reconnecting,
-    Failed,
-}
-
-#[derive(Debug, Clone)]
-pub struct ConnectionStateEvent {
-    pub state: ConnectionState,
-    pub reason: Option<String>,
-}
-
 // ── Pusher protocol messages ────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
