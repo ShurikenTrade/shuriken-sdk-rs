@@ -358,14 +358,14 @@ fn serialize_create_trigger_order_params() {
 // ── Client construction ─────────────────────────────────────────────────────
 
 #[test]
-fn client_new() {
-    let client = shuriken_sdk::ShurikenClient::new("sk_test123");
+fn http_client_new() {
+    let client = shuriken_sdk::ShurikenHttpClient::new("sk_test123");
     assert!(client.is_ok());
 }
 
 #[test]
-fn client_with_base_url() {
+fn http_client_with_base_url() {
     let client =
-        shuriken_sdk::ShurikenClient::with_base_url("sk_test", "https://staging.example.com/");
+        shuriken_sdk::ShurikenHttpClient::with_base_url("sk_test", "https://staging.example.com/");
     assert!(client.is_ok());
 }
