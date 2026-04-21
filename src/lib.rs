@@ -22,5 +22,6 @@ pub use http::account;
 pub use http::perps;
 pub use http::portfolio;
 pub use http::swap;
+pub use http::tasks;
 pub use http::tokens;
 pub use http::trigger;

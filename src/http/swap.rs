@@ -195,10 +195,6 @@ impl SwapApi<'_> {
         self.0.post("/api/v2/swap/submit", params).await
     }
 
-    pub async fn get_status(&self, task_id: &str) -> Result<SwapStatus, ShurikenError> {
-        self.0.get(&format!("/api/v2/swap/status/{task_id}")).await
-    }
-
     pub async fn get_approve_spender(
         &self,
         chain_id: u64,

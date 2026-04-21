@@ -20,6 +20,8 @@ pub struct AccountWallet {
     pub address: String,
     pub chain: Option<String>,
     pub label: Option<String>,
+    /// Whether multisend is enabled (Solana only, required for trigger orders).
+    pub is_multisend_enabled: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

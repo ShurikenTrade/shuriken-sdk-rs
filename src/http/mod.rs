@@ -2,6 +2,7 @@ pub mod account;
 pub mod perps;
 pub mod portfolio;
 pub mod swap;
+pub mod tasks;
 pub mod tokens;
 pub mod trigger;
 
@@ -61,6 +62,10 @@ impl ShurikenHttpClient {
 
     pub fn perps(&self) -> perps::PerpsApi<'_> {
         perps::PerpsApi(self)
+    }
+
+    pub fn tasks(&self) -> tasks::TasksApi<'_> {
+        tasks::TasksApi(self)
     }
 
     // ── HTTP helpers ───────────────────────────────────────────────────────

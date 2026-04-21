@@ -91,6 +91,23 @@ fn deserialize_swap_status() {
 }
 
 #[test]
+fn deserialize_task_status() {
+    let data = json!({
+        "taskId": "t_789",
+        "taskType": "swap",
+        "status": "success",
+        "txHash": "def456",
+        "errorCode": null,
+        "errorMessage": null
+    });
+    let task: shuriken_sdk::tasks::TaskStatus = serde_json::from_value(data).unwrap();
+    assert_eq!(task.task_id, "t_789");
+    assert_eq!(task.task_type, "swap");
+    assert_eq!(task.status, "success");
+    assert_eq!(task.tx_hash, Some("def456".into()));
+}
+
+#[test]
 fn deserialize_perp_market() {
     let data = json!({
         "meta": {

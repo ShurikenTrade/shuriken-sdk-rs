@@ -102,7 +102,7 @@ let tx = client.swap().build_transaction(&BuildTransactionParams {
 }).await?;
 
 // Poll execution status
-let result = client.swap().get_status("task_id").await?;
+let result = client.tasks().get_status("task_id").await?;
 
 // EVM approval helpers
 let spender = client.swap().get_approve_spender(8453).await?;
