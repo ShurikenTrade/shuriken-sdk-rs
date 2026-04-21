@@ -1124,6 +1124,7 @@ dependencies = [
 name = "shuriken-sdk"
 version = "0.2.0"
 dependencies = [
+ "futures-core",
  "futures-util",
  "reqwest",
  "serde",

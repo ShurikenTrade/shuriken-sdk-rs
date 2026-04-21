@@ -11,7 +11,7 @@ categories = ["api-bindings"]
 
 [features]
 default = []
-ws = ["dep:tokio-tungstenite", "dep:futures-util", "dep:tracing"]
+ws = ["dep:tokio-tungstenite", "dep:futures-util", "dep:tracing", "dep:futures-core"]
 
 [dependencies]
 shuriken-api-types = "0.3.1"
@@ -25,3 +25,4 @@ thiserror = "2"
 tokio-tungstenite = { version = "0.26", features = ["native-tls"], optional = true }
 futures-util = { version = "0.3", optional = true }
 tracing = { version = "0.1", optional = true }
+futures-core = { version = "0.3", optional = true }
