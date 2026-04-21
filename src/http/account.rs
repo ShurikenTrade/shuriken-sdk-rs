@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::client::ShurikenClient;
+use super::ShurikenHttpClient;
 use crate::error::ShurikenError;
 
 // ── Response types ──────────────────────────────────────────────────────────
@@ -138,38 +138,41 @@ pub struct EnableMultisendResponse {
 
 // ── API methods ─────────────────────────────────────────────────────────────
 
-impl ShurikenClient {
+pub struct AccountApi<'a>(pub(crate) &'a ShurikenHttpClient);
+
+impl AccountApi<'_> {
     pub async fn get_me(&self) -> Result<AccountInfo, ShurikenError> {
-        self.get("/api/v2/account/me").await
+        self.0.get("/api/v2/account/me").await
     }
 
     pub async fn get_settings(&self) -> Result<AccountSettings, ShurikenError> {
-        self.get("/api/v2/account/settings").await
+        self.0.get("/api/v2/account/settings").await
     }
 
     pub async fn update_settings(
         &self,
         settings: &AccountSettings,
     ) -> Result<AccountSettings, ShurikenError> {
-        self.put("/api/v2/account/settings", settings).await
+        self.0.put("/api/v2/account/settings", settings).await
     }
 
     pub async fn get_usage(&self) -> Result<AccountUsage, ShurikenError> {
-        self.get("/api/v2/account/usage").await
+        self.0.get("/api/v2/account/usage").await
     }
 
     pub async fn get_wallets(&self) -> Result<Vec<AccountWallet>, ShurikenError> {
-        self.get("/api/v2/account/wallets").await
+        self.0.get("/api/v2/account/wallets").await
     }
 
     pub async fn enable_multisend(
         &self,
         wallet_id: &str,
     ) -> Result<EnableMultisendResponse, ShurikenError> {
-        self.post(
-            &format!("/api/v2/account/wallets/{wallet_id}/enable-multisend"),
-            &serde_json::Value::Object(Default::default()),
-        )
-        .await
+        self.0
+            .post(
+                &format!("/api/v2/account/wallets/{wallet_id}/enable-multisend"),
+                &serde_json::Value::Object(Default::default()),
+            )
+            .await
     }
 }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::client::ShurikenClient;
+use super::ShurikenHttpClient;
 use crate::error::ShurikenError;
 
 // ── Response types ──────────────────────────────────────────────────────────
@@ -149,12 +149,14 @@ pub struct GetTokenChartParams {
 
 // ── API methods ─────────────────────────────────────────────────────────────
 
-impl ShurikenClient {
-    pub async fn get_token(&self, token_id: &str) -> Result<TokenInfo, ShurikenError> {
-        self.get(&format!("/api/v2/tokens/{token_id}")).await
+pub struct TokensApi<'a>(pub(crate) &'a ShurikenHttpClient);
+
+impl TokensApi<'_> {
+    pub async fn get(&self, token_id: &str) -> Result<TokenInfo, ShurikenError> {
+        self.0.get(&format!("/api/v2/tokens/{token_id}")).await
     }
 
-    pub async fn search_tokens(
+    pub async fn search(
         &self,
         params: &SearchTokensParams,
     ) -> Result<Vec<TokenInfo>, ShurikenError> {
@@ -168,25 +170,24 @@ impl ShurikenClient {
         if let Some(limit) = params.limit {
             query.push(("limit", limit.to_string()));
         }
-        self.get_with_query("/api/v2/tokens/search", &query).await
+        self.0.get_with_query("/api/v2/tokens/search", &query).await
     }
 
-    pub async fn batch_tokens(
-        &self,
-        tokens: &[String],
-    ) -> Result<BatchTokensResponse, ShurikenError> {
+    pub async fn batch(&self, tokens: &[String]) -> Result<BatchTokensResponse, ShurikenError> {
         #[derive(Serialize)]
         struct Body<'a> {
             tokens: &'a [String],
         }
-        self.post("/api/v2/tokens/batch", &Body { tokens }).await
+        self.0.post("/api/v2/tokens/batch", &Body { tokens }).await
     }
 
-    pub async fn get_token_price(&self, token_id: &str) -> Result<TokenPrice, ShurikenError> {
-        self.get(&format!("/api/v2/tokens/{token_id}/price")).await
+    pub async fn get_price(&self, token_id: &str) -> Result<TokenPrice, ShurikenError> {
+        self.0
+            .get(&format!("/api/v2/tokens/{token_id}/price"))
+            .await
     }
 
-    pub async fn get_token_chart(
+    pub async fn get_chart(
         &self,
         params: &GetTokenChartParams,
     ) -> Result<TokenChart, ShurikenError> {
@@ -197,18 +198,23 @@ impl ShurikenClient {
         if let Some(count) = params.count {
             query.push(("count", count.to_string()));
         }
-        self.get_with_query(
-            &format!("/api/v2/tokens/{}/price/chart", params.token_id),
-            &query,
-        )
-        .await
+        self.0
+            .get_with_query(
+                &format!("/api/v2/tokens/{}/price/chart", params.token_id),
+                &query,
+            )
+            .await
     }
 
-    pub async fn get_token_stats(&self, token_id: &str) -> Result<TokenStats, ShurikenError> {
-        self.get(&format!("/api/v2/tokens/{token_id}/stats")).await
+    pub async fn get_stats(&self, token_id: &str) -> Result<TokenStats, ShurikenError> {
+        self.0
+            .get(&format!("/api/v2/tokens/{token_id}/stats"))
+            .await
     }
 
-    pub async fn get_token_pools(&self, token_id: &str) -> Result<TokenPools, ShurikenError> {
-        self.get(&format!("/api/v2/tokens/{token_id}/pools")).await
+    pub async fn get_pools(&self, token_id: &str) -> Result<TokenPools, ShurikenError> {
+        self.0
+            .get(&format!("/api/v2/tokens/{token_id}/pools"))
+            .await
     }
 }

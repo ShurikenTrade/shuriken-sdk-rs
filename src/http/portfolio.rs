@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::client::ShurikenClient;
+use super::ShurikenHttpClient;
 use crate::error::ShurikenError;
 
 // ── Response types ──────────────────────────────────────────────────────────
@@ -108,7 +108,9 @@ pub struct GetPositionsParams {
 
 // ── API methods ─────────────────────────────────────────────────────────────
 
-impl ShurikenClient {
+pub struct PortfolioApi<'a>(pub(crate) &'a ShurikenHttpClient);
+
+impl PortfolioApi<'_> {
     pub async fn get_balances(
         &self,
         params: &GetBalancesParams,
@@ -117,7 +119,8 @@ impl ShurikenClient {
         if let Some(chain) = &params.chain {
             query.push(("chain", chain.clone()));
         }
-        self.get_with_query("/api/v2/portfolio/balances", &query)
+        self.0
+            .get_with_query("/api/v2/portfolio/balances", &query)
             .await
     }
 
@@ -135,7 +138,8 @@ impl ShurikenClient {
         if let Some(limit) = params.limit {
             query.push(("limit", limit.to_string()));
         }
-        self.get_with_query("/api/v2/portfolio/history", &query)
+        self.0
+            .get_with_query("/api/v2/portfolio/history", &query)
             .await
     }
 
@@ -144,7 +148,7 @@ impl ShurikenClient {
         if let Some(timeframe) = &params.timeframe {
             query.push(("timeframe", timeframe.clone()));
         }
-        self.get_with_query("/api/v2/portfolio/pnl", &query).await
+        self.0.get_with_query("/api/v2/portfolio/pnl", &query).await
     }
 
     pub async fn get_positions(
@@ -158,7 +162,8 @@ impl ShurikenClient {
         if let Some(status) = &params.status {
             query.push(("status", status.clone()));
         }
-        self.get_with_query("/api/v2/portfolio/positions", &query)
+        self.0
+            .get_with_query("/api/v2/portfolio/positions", &query)
             .await
     }
 }

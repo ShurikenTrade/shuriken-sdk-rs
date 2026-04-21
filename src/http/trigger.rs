@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::client::ShurikenClient;
+use super::ShurikenHttpClient;
 use crate::error::ShurikenError;
 
 // ── Response types ──────────────────────────────────────────────────────────
@@ -87,22 +87,23 @@ pub struct ListTriggerOrdersParams {
 
 // ── API methods ─────────────────────────────────────────────────────────────
 
-impl ShurikenClient {
-    pub async fn create_trigger_order(
+pub struct TriggerApi<'a>(pub(crate) &'a ShurikenHttpClient);
+
+impl TriggerApi<'_> {
+    pub async fn create(
         &self,
         params: &CreateTriggerOrderParams,
     ) -> Result<TriggerOrder, ShurikenError> {
-        self.post("/api/v2/trigger/order", params).await
+        self.0.post("/api/v2/trigger/order", params).await
     }
 
-    pub async fn get_trigger_order(
-        &self,
-        order_id: &str,
-    ) -> Result<TriggerOrderView, ShurikenError> {
-        self.get(&format!("/api/v2/trigger/order/{order_id}")).await
+    pub async fn get(&self, order_id: &str) -> Result<TriggerOrderView, ShurikenError> {
+        self.0
+            .get(&format!("/api/v2/trigger/order/{order_id}"))
+            .await
     }
 
-    pub async fn list_trigger_orders(
+    pub async fn list(
         &self,
         params: &ListTriggerOrdersParams,
     ) -> Result<TriggerOrdersResponse, ShurikenError> {
@@ -113,14 +114,14 @@ impl ShurikenClient {
         if let Some(cursor) = &params.cursor {
             query.push(("cursor", cursor.clone()));
         }
-        self.get_with_query("/api/v2/trigger/orders", &query).await
+        self.0
+            .get_with_query("/api/v2/trigger/orders", &query)
+            .await
     }
 
-    pub async fn cancel_trigger_order(
-        &self,
-        order_id: &str,
-    ) -> Result<CancelledTriggerOrder, ShurikenError> {
-        self.delete(&format!("/api/v2/trigger/order/{order_id}"))
+    pub async fn cancel(&self, order_id: &str) -> Result<CancelledTriggerOrder, ShurikenError> {
+        self.0
+            .delete(&format!("/api/v2/trigger/order/{order_id}"))
             .await
     }
 }

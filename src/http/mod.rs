@@ -1,3 +1,10 @@
+pub mod account;
+pub mod perps;
+pub mod portfolio;
+pub mod swap;
+pub mod tokens;
+pub mod trigger;
+
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
@@ -6,15 +13,13 @@ use crate::error::ShurikenError;
 
 const DEFAULT_BASE_URL: &str = "https://api.shuriken.trade";
 
-pub struct ShurikenClient {
+#[derive(Clone)]
+pub struct ShurikenHttpClient {
     pub(crate) http: Client,
     pub(crate) base_url: String,
-
-    #[cfg(feature = "ws")]
-    pub ws: crate::ws::WsHandle,
 }
 
-impl ShurikenClient {
+impl ShurikenHttpClient {
     pub fn new(api_key: &str) -> Result<Self, ShurikenError> {
         Self::with_base_url(api_key, DEFAULT_BASE_URL)
     }
@@ -29,13 +34,36 @@ impl ShurikenClient {
         let http = Client::builder().default_headers(headers).build()?;
         let base_url = base_url.trim_end_matches('/').to_string();
 
-        Ok(Self {
-            #[cfg(feature = "ws")]
-            ws: crate::ws::WsHandle::new(http.clone(), base_url.clone()),
-            http,
-            base_url,
-        })
+        Ok(Self { http, base_url })
     }
+
+    // ── Namespace accessors ────────────────────────────────────────────────
+
+    pub fn account(&self) -> account::AccountApi<'_> {
+        account::AccountApi(self)
+    }
+
+    pub fn tokens(&self) -> tokens::TokensApi<'_> {
+        tokens::TokensApi(self)
+    }
+
+    pub fn swap(&self) -> swap::SwapApi<'_> {
+        swap::SwapApi(self)
+    }
+
+    pub fn portfolio(&self) -> portfolio::PortfolioApi<'_> {
+        portfolio::PortfolioApi(self)
+    }
+
+    pub fn trigger(&self) -> trigger::TriggerApi<'_> {
+        trigger::TriggerApi(self)
+    }
+
+    pub fn perps(&self) -> perps::PerpsApi<'_> {
+        perps::PerpsApi(self)
+    }
+
+    // ── HTTP helpers ───────────────────────────────────────────────────────
 
     pub(crate) fn url(&self, path: &str) -> String {
         format!("{}{path}", self.base_url)

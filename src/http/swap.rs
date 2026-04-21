@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::client::ShurikenClient;
+use super::ShurikenHttpClient;
 use crate::error::ShurikenError;
 
 // ── Response types ──────────────────────────────────────────────────────────
@@ -161,11 +161,10 @@ pub struct GetApproveAllowanceParams {
 
 // ── API methods ─────────────────────────────────────────────────────────────
 
-impl ShurikenClient {
-    pub async fn get_swap_quote(
-        &self,
-        params: &GetSwapQuoteParams,
-    ) -> Result<SwapQuote, ShurikenError> {
+pub struct SwapApi<'a>(pub(crate) &'a ShurikenHttpClient);
+
+impl SwapApi<'_> {
+    pub async fn get_quote(&self, params: &GetSwapQuoteParams) -> Result<SwapQuote, ShurikenError> {
         let mut query = vec![
             ("chain", params.chain.clone()),
             ("inputMint", params.input_mint.clone()),
@@ -175,57 +174,56 @@ impl ShurikenClient {
         if let Some(slippage) = params.slippage_bps {
             query.push(("slippageBps", slippage.to_string()));
         }
-        self.get_with_query("/api/v2/swap/quote", &query).await
+        self.0.get_with_query("/api/v2/swap/quote", &query).await
     }
 
-    pub async fn execute_swap(
-        &self,
-        params: &ExecuteSwapParams,
-    ) -> Result<SwapStatus, ShurikenError> {
-        self.post("/api/v2/swap/execute", params).await
+    pub async fn execute(&self, params: &ExecuteSwapParams) -> Result<SwapStatus, ShurikenError> {
+        self.0.post("/api/v2/swap/execute", params).await
     }
 
     pub async fn build_transaction(
         &self,
         params: &BuildTransactionParams,
     ) -> Result<BuildTransactionResponse, ShurikenError> {
-        self.post("/api/v2/swap/transaction", params).await
+        self.0.post("/api/v2/swap/transaction", params).await
     }
 
     pub async fn submit_transaction(
         &self,
         params: &SubmitTransactionParams,
     ) -> Result<SubmitTransactionResponse, ShurikenError> {
-        self.post("/api/v2/swap/submit", params).await
+        self.0.post("/api/v2/swap/submit", params).await
     }
 
-    pub async fn get_swap_status(&self, task_id: &str) -> Result<SwapStatus, ShurikenError> {
-        self.get(&format!("/api/v2/swap/status/{task_id}")).await
+    pub async fn get_status(&self, task_id: &str) -> Result<SwapStatus, ShurikenError> {
+        self.0.get(&format!("/api/v2/swap/status/{task_id}")).await
     }
 
     pub async fn get_approve_spender(
         &self,
         chain_id: u64,
     ) -> Result<ApproveSpenderResponse, ShurikenError> {
-        self.get_with_query(
-            "/api/v2/swap/approve/spender",
-            &[("chainId", chain_id.to_string())],
-        )
-        .await
+        self.0
+            .get_with_query(
+                "/api/v2/swap/approve/spender",
+                &[("chainId", chain_id.to_string())],
+            )
+            .await
     }
 
     pub async fn get_approve_allowance(
         &self,
         params: &GetApproveAllowanceParams,
     ) -> Result<ApproveAllowanceResponse, ShurikenError> {
-        self.get_with_query(
-            "/api/v2/swap/approve/allowance",
-            &[
-                ("chainId", params.chain_id.to_string()),
-                ("tokenAddress", params.token_address.clone()),
-                ("walletAddress", params.wallet_address.clone()),
-            ],
-        )
-        .await
+        self.0
+            .get_with_query(
+                "/api/v2/swap/approve/allowance",
+                &[
+                    ("chainId", params.chain_id.to_string()),
+                    ("tokenAddress", params.token_address.clone()),
+                    ("walletAddress", params.wallet_address.clone()),
+                ],
+            )
+            .await
     }
 }

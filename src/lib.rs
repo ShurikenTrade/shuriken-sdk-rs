@@ -1,18 +1,17 @@
-pub mod api;
-mod client;
 mod error;
+pub mod http;
 
 #[cfg(feature = "ws")]
 pub mod ws;
 
-pub use client::ShurikenClient;
 pub use error::ShurikenError;
+pub use http::ShurikenHttpClient;
 
 pub use shuriken_api_types as types;
 
-pub use api::account;
-pub use api::perps;
-pub use api::portfolio;
-pub use api::swap;
-pub use api::tokens;
-pub use api::trigger;
+pub use http::account;
+pub use http::perps;
+pub use http::portfolio;
+pub use http::swap;
+pub use http::tokens;
+pub use http::trigger;

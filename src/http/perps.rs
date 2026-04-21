@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::client::ShurikenClient;
+use super::ShurikenHttpClient;
 use crate::error::ShurikenError;
 
 // ── Response types ──────────────────────────────────────────────────────────
@@ -328,24 +328,25 @@ fn wallet_query(wallet_id: &Option<String>) -> Vec<(&'static str, String)> {
         .unwrap_or_default()
 }
 
-impl ShurikenClient {
-    pub async fn get_perp_account(
+pub struct PerpsApi<'a>(pub(crate) &'a ShurikenHttpClient);
+
+impl PerpsApi<'_> {
+    pub async fn get_account(
         &self,
         params: &GetPerpAccountParams,
     ) -> Result<PerpAccountState, ShurikenError> {
-        self.get_with_query("/api/v2/perp/account", &wallet_query(&params.wallet_id))
+        self.0
+            .get_with_query("/api/v2/perp/account", &wallet_query(&params.wallet_id))
             .await
     }
 
-    pub async fn get_perp_fees(
-        &self,
-        params: &GetPerpFeesParams,
-    ) -> Result<UserFees, ShurikenError> {
-        self.get_with_query("/api/v2/perp/fees", &wallet_query(&params.wallet_id))
+    pub async fn get_fees(&self, params: &GetPerpFeesParams) -> Result<UserFees, ShurikenError> {
+        self.0
+            .get_with_query("/api/v2/perp/fees", &wallet_query(&params.wallet_id))
             .await
     }
 
-    pub async fn get_perp_fills(
+    pub async fn get_fills(
         &self,
         params: &GetPerpFillsParams,
     ) -> Result<Vec<PerpFill>, ShurikenError> {
@@ -359,10 +360,10 @@ impl ShurikenClient {
         if let Some(w) = &params.wallet_id {
             query.push(("wallet_id", w.clone()));
         }
-        self.get_with_query("/api/v2/perp/fills", &query).await
+        self.0.get_with_query("/api/v2/perp/fills", &query).await
     }
 
-    pub async fn get_perp_funding(
+    pub async fn get_funding(
         &self,
         params: &GetPerpFundingParams,
     ) -> Result<Vec<FundingPayment>, ShurikenError> {
@@ -376,18 +377,18 @@ impl ShurikenClient {
         if let Some(w) = &params.wallet_id {
             query.push(("wallet_id", w.clone()));
         }
-        self.get_with_query("/api/v2/perp/funding", &query).await
+        self.0.get_with_query("/api/v2/perp/funding", &query).await
     }
 
-    pub async fn get_perp_markets(&self) -> Result<Vec<PerpMarket>, ShurikenError> {
-        self.get("/api/v2/perp/markets").await
+    pub async fn get_markets(&self) -> Result<Vec<PerpMarket>, ShurikenError> {
+        self.0.get("/api/v2/perp/markets").await
     }
 
-    pub async fn get_perp_market(&self, coin: &str) -> Result<PerpMarket, ShurikenError> {
-        self.get(&format!("/api/v2/perp/markets/{coin}")).await
+    pub async fn get_market(&self, coin: &str) -> Result<PerpMarket, ShurikenError> {
+        self.0.get(&format!("/api/v2/perp/markets/{coin}")).await
     }
 
-    pub async fn get_perp_orders(
+    pub async fn get_orders(
         &self,
         params: &GetPerpOrdersParams,
     ) -> Result<Vec<OpenOrder>, ShurikenError> {
@@ -395,63 +396,64 @@ impl ShurikenClient {
         if let Some(coin) = &params.coin {
             query.push(("coin", coin.clone()));
         }
-        self.get_with_query("/api/v2/perp/orders", &query).await
+        self.0.get_with_query("/api/v2/perp/orders", &query).await
     }
 
-    pub async fn get_perp_positions(
+    pub async fn get_positions(
         &self,
         params: &GetPerpPositionsParams,
     ) -> Result<PerpPositionsResponse, ShurikenError> {
-        self.get_with_query("/api/v2/perp/positions", &wallet_query(&params.wallet_id))
+        self.0
+            .get_with_query("/api/v2/perp/positions", &wallet_query(&params.wallet_id))
             .await
     }
 
-    pub async fn place_perp_order(
+    pub async fn place_order(
         &self,
         params: &PlaceOrderParams,
     ) -> Result<OrderResponse, ShurikenError> {
-        self.post("/api/v2/perp/order", params).await
+        self.0.post("/api/v2/perp/order", params).await
     }
 
-    pub async fn modify_perp_order(
+    pub async fn modify_order(
         &self,
         params: &ModifyOrderParams,
     ) -> Result<OrderResponse, ShurikenError> {
-        self.patch("/api/v2/perp/order", params).await
+        self.0.patch("/api/v2/perp/order", params).await
     }
 
-    pub async fn cancel_perp_order(
+    pub async fn cancel_order(
         &self,
         params: &CancelOrderParams,
     ) -> Result<OrderResponse, ShurikenError> {
-        self.delete_with_body("/api/v2/perp/order", params).await
+        self.0.delete_with_body("/api/v2/perp/order", params).await
     }
 
-    pub async fn batch_modify_perp_orders(
+    pub async fn batch_modify_orders(
         &self,
         params: &BatchModifyParams,
     ) -> Result<OrderResponse, ShurikenError> {
-        self.patch("/api/v2/perp/orders", params).await
+        self.0.patch("/api/v2/perp/orders", params).await
     }
 
-    pub async fn close_perp_position(
+    pub async fn close_position(
         &self,
         params: &ClosePositionParams,
     ) -> Result<OrderResponse, ShurikenError> {
-        self.post("/api/v2/perp/position/close", params).await
+        self.0.post("/api/v2/perp/position/close", params).await
     }
 
-    pub async fn update_perp_leverage(
+    pub async fn update_leverage(
         &self,
         params: &UpdateLeverageParams,
     ) -> Result<LeverageResponse, ShurikenError> {
-        self.post("/api/v2/perp/leverage", params).await
+        self.0.post("/api/v2/perp/leverage", params).await
     }
 
-    pub async fn update_perp_margin(
+    pub async fn update_margin(
         &self,
         params: &UpdateMarginParams,
     ) -> Result<MarginResponse, ShurikenError> {
-        self.post("/api/v2/perp/position/margin", params).await
+        self.0.post("/api/v2/perp/position/margin", params).await
     }
 }
