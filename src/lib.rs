@@ -7,6 +7,15 @@ pub mod ws;
 pub use error::ShurikenError;
 pub use http::ShurikenHttpClient;
 
+#[cfg(feature = "ws")]
+pub use ws::streams;
+#[cfg(feature = "ws")]
+pub use ws::subscription::Subscription;
+#[cfg(feature = "ws")]
+pub use ws::ShurikenWsClient;
+#[cfg(feature = "ws")]
+pub use ws::{ConnectionState, ConnectionStateEvent};
+
 pub use shuriken_api_types as types;
 
 pub use http::account;
