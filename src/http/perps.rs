@@ -92,7 +92,9 @@ pub struct BookLevel {
 pub struct PerpMarket {
     pub meta: MarketMeta,
     pub ctx: MarketCtx,
+    #[serde(default)]
     pub asks: Vec<BookLevel>,
+    #[serde(default)]
     pub bids: Vec<BookLevel>,
 }
 

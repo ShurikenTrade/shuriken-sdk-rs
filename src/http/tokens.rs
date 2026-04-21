@@ -125,8 +125,11 @@ pub struct TokenPools {
 #[serde(rename_all = "camelCase")]
 pub struct BatchTokensResponse {
     pub tokens: Vec<TokenInfo>,
+    #[serde(default)]
     pub not_found: Vec<String>,
+    #[serde(default)]
     pub invalid: Vec<String>,
+    #[serde(default)]
     pub errors: Vec<String>,
 }
 
