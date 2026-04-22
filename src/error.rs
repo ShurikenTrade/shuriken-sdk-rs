@@ -1,3 +1,4 @@
+use shuriken_api_types::error::ApiErrorResponse;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -5,11 +6,10 @@ pub enum ShurikenError {
     #[error("authentication failed: {0}")]
     Auth(String),
 
-    #[error("api error (status {status}): {message}")]
+    #[error("api error (status {status}, {code}): {message}", code = .response.error.code, message = .response.error.message)]
     Api {
         status: u16,
-        message: String,
-        request_id: Option<String>,
+        response: ApiErrorResponse,
     },
 
     #[error("session error: {0}")]

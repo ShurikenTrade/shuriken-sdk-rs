@@ -6,6 +6,8 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::tungstenite::Message;
 use tracing::warn;
 
+use shuriken_api_types::error::ApiErrorResponse;
+
 use crate::error::ShurikenError;
 
 use super::types::*;
@@ -35,20 +37,15 @@ pub(crate) async fn http_post(
     let url = format!("{base_url}{path}");
     let resp = http.post(&url).json(body).send().await?;
     let status = resp.status();
-    let request_id = resp
-        .headers()
-        .get("x-request-id")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-
     if status == reqwest::StatusCode::UNAUTHORIZED {
         return Err(ShurikenError::Auth(resp.text().await.unwrap_or_default()));
     }
     if !status.is_success() {
+        let text = resp.text().await.unwrap_or_default();
+        let response: ApiErrorResponse = serde_json::from_str(&text)?;
         return Err(ShurikenError::Api {
             status: status.as_u16(),
-            message: resp.text().await.unwrap_or_default(),
-            request_id,
+            response,
         });
     }
     Ok(resp.json().await?)

@@ -10,6 +10,8 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 
+use shuriken_api_types::error::ApiErrorResponse;
+
 use crate::error::ShurikenError;
 
 const DEFAULT_BASE_URL: &str = "https://api.shuriken.trade";
@@ -134,11 +136,6 @@ impl ShurikenHttpClient {
         resp: reqwest::Response,
     ) -> Result<T, ShurikenError> {
         let status = resp.status();
-        let request_id = resp
-            .headers()
-            .get("x-request-id")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string());
 
         if status == reqwest::StatusCode::UNAUTHORIZED {
             let text = resp.text().await.unwrap_or_default();
@@ -147,10 +144,10 @@ impl ShurikenHttpClient {
 
         if !status.is_success() {
             let text = resp.text().await.unwrap_or_default();
+            let response: ApiErrorResponse = serde_json::from_str(&text)?;
             return Err(ShurikenError::Api {
                 status: status.as_u16(),
-                message: text,
-                request_id,
+                response,
             });
         }
 
