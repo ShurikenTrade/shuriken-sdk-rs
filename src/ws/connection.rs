@@ -105,7 +105,7 @@ pub(crate) async fn expand_session(
             sub.channel = resolved.channel.clone();
             sub.event = resolved.event.clone();
             sub.resolved = Some(resolved.clone());
-            if let Err(e) = pusher_subscribe(
+            if let Err(e) = transport_subscribe(
                 http,
                 base_url,
                 session,
@@ -123,9 +123,9 @@ pub(crate) async fn expand_session(
     Ok(())
 }
 
-// ── Pusher protocol ─────────────────────────────────────────────────────────
+// ── Transport protocol ──────────────────────────────────────────────────────
 
-pub(crate) async fn pusher_subscribe(
+pub(crate) async fn transport_subscribe(
     http: &Client,
     base_url: &str,
     session: &Option<SessionResponse>,
@@ -165,9 +165,9 @@ pub(crate) async fn pusher_subscribe(
         None
     };
 
-    let msg = serde_json::to_string(&PusherSubscribe {
+    let msg = serde_json::to_string(&TransportSubscribe {
         event: "pusher:subscribe",
-        data: PusherSubscribeData {
+        data: TransportSubscribeData {
             channel: channel.to_string(),
             auth,
             channel_data: None,
@@ -185,7 +185,10 @@ pub(crate) async fn pusher_subscribe(
 
 // ── Dispatch ────────────────────────────────────────────────────────────────
 
-pub(crate) async fn dispatch(subscriptions: &Mutex<Vec<ActiveSubscription>>, msg: PusherMessage) {
+pub(crate) async fn dispatch(
+    subscriptions: &Mutex<Vec<ActiveSubscription>>,
+    msg: TransportMessage,
+) {
     if msg.event.starts_with("pusher:") || msg.event.starts_with("pusher_internal:") {
         return;
     }

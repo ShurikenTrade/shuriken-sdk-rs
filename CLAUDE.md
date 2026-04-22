@@ -25,7 +25,7 @@ Public SDK for the Shuriken API (REST + WebSocket streams). Version 0.3.0.
 - `src/ws/mod.rs` — `ShurikenWsClient` (separate from HTTP client), `ConnectionState`, `ConnectionStateEvent`
 - `src/ws/streams.rs` — `StreamDef<P, F>` type, filter types (`SvmTokenFilter`, `EvmTokenFilter`, etc.), 21 typed stream constants
 - `src/ws/subscription.rs` — `Subscription<T>` implementing `futures_core::Stream`
-- `src/ws/connection.rs` — Internal Pusher protocol handling
+- `src/ws/connection.rs` — Internal real-time transport protocol handling
 - Stream payload types come from the `shuriken-api-types` crate (separate repo)
 
 ## Key design decisions

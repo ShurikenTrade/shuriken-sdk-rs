@@ -48,10 +48,10 @@ pub struct SessionResponse {
     pub subscriptions: Vec<ResolvedSubscription>,
 }
 
-// ── Pusher protocol messages ────────────────────────────────────────────────
+// ── Real-time transport protocol messages ───────────────────────────────────
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PusherMessage {
+pub(crate) struct TransportMessage {
     pub event: String,
     #[serde(default)]
     pub channel: Option<String>,
@@ -60,13 +60,13 @@ pub(crate) struct PusherMessage {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct PusherSubscribe {
+pub(crate) struct TransportSubscribe {
     pub event: &'static str,
-    pub data: PusherSubscribeData,
+    pub data: TransportSubscribeData,
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct PusherSubscribeData {
+pub(crate) struct TransportSubscribeData {
     pub channel: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<String>,
@@ -75,6 +75,6 @@ pub(crate) struct PusherSubscribeData {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PusherConnectionEstablished {
+pub(crate) struct TransportConnectionEstablished {
     pub socket_id: String,
 }

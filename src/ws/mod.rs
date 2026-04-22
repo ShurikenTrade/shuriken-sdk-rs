@@ -23,7 +23,7 @@ use tracing::{debug, error, warn};
 use crate::error::ShurikenError;
 
 use connection::{
-    dispatch, expand_session, fetch_session, pusher_subscribe, ActiveSubscription, WsSink,
+    dispatch, expand_session, fetch_session, transport_subscribe, ActiveSubscription, WsSink,
 };
 use types::*;
 
@@ -131,18 +131,18 @@ impl ShurikenWsClient {
         *self.sink.lock().await = Some(sink);
         self.session = Some(session);
 
-        // Wait for pusher:connection_established
+        // Wait for connection_established from real-time transport
         let socket_id = loop {
             match stream.next().await {
                 Some(Ok(Message::Text(text))) => {
-                    if let Ok(msg) = serde_json::from_str::<PusherMessage>(&text) {
+                    if let Ok(msg) = serde_json::from_str::<TransportMessage>(&text) {
                         if msg.event == "pusher:connection_established" {
                             if let Some(data) = &msg.data {
                                 let data_str = match data {
                                     serde_json::Value::String(s) => s.clone(),
                                     other => other.to_string(),
                                 };
-                                let established: PusherConnectionEstablished =
+                                let established: TransportConnectionEstablished =
                                     serde_json::from_str(&data_str).map_err(|e| {
                                         ShurikenError::Session(format!(
                                             "Failed to parse connection_established: {e}"
@@ -181,7 +181,7 @@ impl ShurikenWsClient {
                     msg = stream.next() => {
                         match msg {
                             Some(Ok(Message::Text(text))) => {
-                                if let Ok(m) = serde_json::from_str::<PusherMessage>(&text) {
+                                if let Ok(m) = serde_json::from_str::<TransportMessage>(&text) {
                                     dispatch(&subscriptions, m).await;
                                 }
                             }
@@ -339,7 +339,7 @@ impl ShurikenWsClient {
         });
 
         if let Some(resolved) = resolved {
-            pusher_subscribe(
+            transport_subscribe(
                 &self.http,
                 &self.base_url,
                 &self.session,
