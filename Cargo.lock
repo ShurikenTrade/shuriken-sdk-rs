@@ -1129,7 +1129,7 @@ dependencies = [
 
 [[package]]
 name = "shuriken-sdk"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "dotenvy",
  "futures-core",
