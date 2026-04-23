@@ -46,6 +46,9 @@ pub struct ConnectionStateEvent {
     pub reason: Option<String>,
 }
 
+type StateSubscribers =
+    Arc<Mutex<Vec<mpsc::UnboundedSender<Result<ConnectionStateEvent, ShurikenError>>>>>;
+
 // ── ShurikenWsClient ───────────────────────────────────────────────────────
 
 pub struct ShurikenWsClient {
@@ -58,7 +61,7 @@ pub struct ShurikenWsClient {
     state: ConnectionState,
     /// Senders for state-change subscribers. The event loop also holds a clone
     /// of this list so it can broadcast disconnection/failure events.
-    state_subscribers: Arc<Mutex<Vec<mpsc::UnboundedSender<Result<ConnectionStateEvent, ShurikenError>>>>>,
+    state_subscribers: StateSubscribers,
     shutdown_tx: Option<mpsc::Sender<()>>,
     unsub_tx: mpsc::UnboundedSender<usize>,
     unsub_rx: Option<mpsc::UnboundedReceiver<usize>>,
@@ -271,7 +274,8 @@ impl ShurikenWsClient {
             filter,
         };
 
-        let (raw_tx, raw_rx) = mpsc::unbounded_channel::<Result<serde_json::Value, ShurikenError>>();
+        let (raw_tx, raw_rx) =
+            mpsc::unbounded_channel::<Result<serde_json::Value, ShurikenError>>();
         let sub_id = self.next_sub_id;
         self.next_sub_id += 1;
 
