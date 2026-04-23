@@ -58,7 +58,7 @@ pub struct ShurikenWsClient {
     state: ConnectionState,
     /// Senders for state-change subscribers. The event loop also holds a clone
     /// of this list so it can broadcast disconnection/failure events.
-    state_subscribers: Arc<Mutex<Vec<mpsc::UnboundedSender<ConnectionStateEvent>>>>,
+    state_subscribers: Arc<Mutex<Vec<mpsc::UnboundedSender<Result<ConnectionStateEvent, ShurikenError>>>>>,
     shutdown_tx: Option<mpsc::Sender<()>>,
     unsub_tx: mpsc::UnboundedSender<usize>,
     unsub_rx: Option<mpsc::UnboundedReceiver<usize>>,
@@ -271,25 +271,15 @@ impl ShurikenWsClient {
             filter,
         };
 
-        let (raw_tx, mut raw_rx) = mpsc::unbounded_channel::<serde_json::Value>();
+        let (raw_tx, raw_rx) = mpsc::unbounded_channel::<Result<serde_json::Value, ShurikenError>>();
         let sub_id = self.next_sub_id;
         self.next_sub_id += 1;
 
         self.register_subscription(sub_id, raw_tx, sub_filter)
             .await?;
 
-        // For raw subscriptions, forward Value -> Value
-        let (typed_tx, typed_rx) = mpsc::unbounded_channel::<serde_json::Value>();
-        tokio::spawn(async move {
-            while let Some(val) = raw_rx.recv().await {
-                if typed_tx.send(val).is_err() {
-                    break;
-                }
-            }
-        });
-
         Ok(Subscription {
-            rx: typed_rx,
+            rx: raw_rx,
             id: sub_id,
             unsub_tx: self.unsub_tx.clone(),
         })
@@ -327,7 +317,7 @@ impl ShurikenWsClient {
     async fn register_subscription(
         &mut self,
         sub_id: usize,
-        raw_tx: mpsc::UnboundedSender<serde_json::Value>,
+        raw_tx: mpsc::UnboundedSender<Result<serde_json::Value, ShurikenError>>,
         sub_filter: SubscriptionFilter,
     ) -> Result<(), ShurikenError> {
         let stream_name = sub_filter.stream.clone();
@@ -399,26 +389,24 @@ impl ShurikenWsClient {
             filter,
         };
 
-        let (raw_tx, mut raw_rx) = mpsc::unbounded_channel::<serde_json::Value>();
+        let (raw_tx, mut raw_rx) =
+            mpsc::unbounded_channel::<Result<serde_json::Value, ShurikenError>>();
         let sub_id = self.next_sub_id;
         self.next_sub_id += 1;
 
         self.register_subscription(sub_id, raw_tx, sub_filter)
             .await?;
 
-        // Spawn a deserialization bridge: raw Value -> typed P
-        let (typed_tx, typed_rx) = mpsc::unbounded_channel::<P>();
+        // Spawn a deserialization bridge: Result<Value> -> Result<P>
+        let (typed_tx, typed_rx) = mpsc::unbounded_channel::<Result<P, ShurikenError>>();
         tokio::spawn(async move {
-            while let Some(val) = raw_rx.recv().await {
-                match serde_json::from_value::<P>(val) {
-                    Ok(parsed) => {
-                        if typed_tx.send(parsed).is_err() {
-                            break;
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to deserialize stream payload: {e}");
-                    }
+            while let Some(result) = raw_rx.recv().await {
+                let mapped = match result {
+                    Ok(val) => serde_json::from_value::<P>(val).map_err(ShurikenError::from),
+                    Err(e) => Err(e),
+                };
+                if typed_tx.send(mapped).is_err() {
+                    break;
                 }
             }
         });
@@ -434,11 +422,11 @@ impl ShurikenWsClient {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 async fn broadcast_state(
-    subscribers: &Mutex<Vec<mpsc::UnboundedSender<ConnectionStateEvent>>>,
+    subscribers: &Mutex<Vec<mpsc::UnboundedSender<Result<ConnectionStateEvent, ShurikenError>>>>,
     state: ConnectionState,
     reason: Option<String>,
 ) {
     let mut subs = subscribers.lock().await;
     let event = ConnectionStateEvent { state, reason };
-    subs.retain(|tx| tx.send(event.clone()).is_ok());
+    subs.retain(|tx| tx.send(Ok(event.clone())).is_ok());
 }

@@ -181,16 +181,16 @@ pub const EVM_WALLET_TOKEN_BALANCES: StreamDef<evm::TokenBalanceEvent, EvmWallet
 // ---------------------------------------------------------------------------
 
 pub const ALPHA_SIGNAL_FEED_GLOBAL: StreamDef<alpha::SignalFeedUpdateEvent, NoFilter> =
-    StreamDef::new("alpha.signalFeed.global");
+    StreamDef::new("alpha.signalFeedGlobal");
 
 pub const ALPHA_SIGNAL_FEED_PERSONAL: StreamDef<alpha::SignalFeedUpdateEvent, NoFilter> =
-    StreamDef::new("alpha.signalFeed.personal");
+    StreamDef::new("alpha.signalFeedPersonal");
 
 pub const ALPHA_SIGNAL_FEED_PROFILE: StreamDef<alpha::SignalFeedUpdateEvent, AlphaProfileFilter> =
-    StreamDef::new("alpha.signalFeed.profile");
+    StreamDef::new("alpha.signalFeedProfile");
 
 pub const ALPHA_SIGNAL_FEED_NAMED: StreamDef<alpha::SignalFeedUpdateEvent, AlphaNamedFeedFilter> =
-    StreamDef::new("alpha.signalFeed.named");
+    StreamDef::new("alpha.signalFeedNamed");
 
 pub const ALPHA_PERSONAL: StreamDef<alpha::MessageEvent, NoFilter> =
     StreamDef::new("alpha.personal");

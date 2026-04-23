@@ -4,7 +4,6 @@ use futures_util::SinkExt;
 use reqwest::Client;
 use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::tungstenite::Message;
-use tracing::warn;
 
 use shuriken_api_types::error::ApiErrorResponse;
 
@@ -21,7 +20,7 @@ pub(crate) struct ActiveSubscription {
     pub id: usize,
     pub channel: String,
     pub event: String,
-    pub tx: mpsc::UnboundedSender<serde_json::Value>,
+    pub tx: mpsc::UnboundedSender<Result<serde_json::Value, ShurikenError>>,
     pub filter: SubscriptionFilter,
     pub resolved: Option<ResolvedSubscription>,
 }
@@ -105,7 +104,7 @@ pub(crate) async fn expand_session(
             sub.channel = resolved.channel.clone();
             sub.event = resolved.event.clone();
             sub.resolved = Some(resolved.clone());
-            if let Err(e) = transport_subscribe(
+            transport_subscribe(
                 http,
                 base_url,
                 session,
@@ -114,10 +113,7 @@ pub(crate) async fn expand_session(
                 &resolved.channel,
                 &resolved.visibility,
             )
-            .await
-            {
-                warn!("Failed to subscribe to channel {}: {e}", resolved.channel);
-            }
+            .await?;
         }
     }
     Ok(())
@@ -189,6 +185,24 @@ pub(crate) async fn dispatch(
     subscriptions: &Mutex<Vec<ActiveSubscription>>,
     msg: TransportMessage,
 ) {
+    if msg.event == "pusher:subscription_error" {
+        let Some(channel) = &msg.channel else { return };
+        let detail = msg
+            .data
+            .as_ref()
+            .and_then(|d| d.as_str())
+            .unwrap_or("subscription failed");
+        let err = ShurikenError::Session(format!(
+            "Channel subscription rejected for \"{channel}\": {detail}"
+        ));
+        let subs = subscriptions.lock().await;
+        for sub in subs.iter() {
+            if sub.channel == *channel {
+                let _ = sub.tx.send(Err(ShurikenError::Session(err.to_string())));
+            }
+        }
+        return;
+    }
     if msg.event.starts_with("pusher:") || msg.event.starts_with("pusher_internal:") {
         return;
     }
@@ -203,7 +217,7 @@ pub(crate) async fn dispatch(
     let subs = subscriptions.lock().await;
     for sub in subs.iter() {
         if sub.channel == *channel && sub.event == msg.event {
-            let _ = sub.tx.send(data.clone());
+            let _ = sub.tx.send(Ok(data.clone()));
         }
     }
 }

@@ -1119,9 +1119,9 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "shuriken-api-types"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64b0d7397474145e62df1762f5ab942634dc222954d6c9b852fa50ffc93ca16f"
+checksum = "9120436679c2e9dd4a5258076eec8c07b0f7be96437eafd2131ebdad9dec169b"
 dependencies = [
  "serde",
  "serde_json",
