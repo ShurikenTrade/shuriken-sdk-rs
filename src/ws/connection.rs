@@ -51,7 +51,51 @@ pub(crate) async fn http_post(
             response,
         });
     }
-    Ok(resp.json().await?)
+    let text = resp.text().await?;
+    serde_json::from_str(&text).map_err(|e| {
+        ShurikenError::Session(format!(
+            "Expected JSON response from {url}, got: {:?} ({e})",
+            text.chars().take(200).collect::<String>()
+        ))
+    })
+}
+
+pub(crate) async fn http_post_form(
+    http: &Client,
+    base_url: &str,
+    path: &str,
+    form: &[(&str, &str)],
+) -> Result<serde_json::Value, ShurikenError> {
+    let url = if path.starts_with("http://") || path.starts_with("https://") {
+        path.to_string()
+    } else {
+        format!("{base_url}{path}")
+    };
+    let resp = http.post(&url).form(form).send().await?;
+    let status = resp.status();
+    if status == reqwest::StatusCode::UNAUTHORIZED {
+        return Err(ShurikenError::Auth(resp.text().await.unwrap_or_default()));
+    }
+    if !status.is_success() {
+        let text = resp.text().await.unwrap_or_default();
+        let response: ApiErrorResponse = serde_json::from_str(&text).map_err(|e| {
+            ShurikenError::Session(format!(
+                "Request to {url} failed ({status}): {:?} ({e})",
+                text.chars().take(200).collect::<String>()
+            ))
+        })?;
+        return Err(ShurikenError::Api {
+            status: status.as_u16(),
+            response,
+        });
+    }
+    let text = resp.text().await?;
+    serde_json::from_str(&text).map_err(|e| {
+        ShurikenError::Session(format!(
+            "Expected JSON response from {url}, got: {:?} ({e})",
+            text.chars().take(200).collect::<String>()
+        ))
+    })
 }
 
 // ── Session management ──────────────────────────────────────────────────────
@@ -145,14 +189,11 @@ pub(crate) async fn transport_subscribe(
             .as_ref()
             .map(|s| s.connection.auth_endpoint.clone())
             .ok_or_else(|| ShurikenError::Session("No session".into()))?;
-        let value = http_post(
+        let value = http_post_form(
             http,
             base_url,
             &auth_endpoint,
-            &serde_json::json!({
-                "socket_id": sid,
-                "channel_name": channel,
-            }),
+            &[("socket_id", sid.as_str()), ("channel_name", channel)],
         )
         .await?;
         Some(
