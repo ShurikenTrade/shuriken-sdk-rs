@@ -178,7 +178,7 @@ pub(crate) async fn transport_subscribe(
     channel: &str,
     visibility: &str,
 ) -> Result<(), ShurikenError> {
-    let auth = if visibility == "presence"
+    let (auth, channel_data) = if visibility == "presence"
         || channel.starts_with("private-")
         || channel.starts_with("presence-")
     {
@@ -196,14 +196,14 @@ pub(crate) async fn transport_subscribe(
             &[("socket_id", sid.as_str()), ("channel_name", channel)],
         )
         .await?;
-        Some(
-            value["auth"]
-                .as_str()
-                .ok_or_else(|| ShurikenError::Session("Missing auth in response".into()))?
-                .to_string(),
-        )
+        let auth = value["auth"]
+            .as_str()
+            .ok_or_else(|| ShurikenError::Session("Missing auth in response".into()))?
+            .to_string();
+        let channel_data = value["channel_data"].as_str().map(|s| s.to_string());
+        (Some(auth), channel_data)
     } else {
-        None
+        (None, None)
     };
 
     let msg = serde_json::to_string(&TransportSubscribe {
@@ -211,7 +211,7 @@ pub(crate) async fn transport_subscribe(
         data: TransportSubscribeData {
             channel: channel.to_string(),
             auth,
-            channel_data: None,
+            channel_data,
         },
     })
     .map_err(|e| ShurikenError::Session(format!("Serialize error: {e}")))?;
