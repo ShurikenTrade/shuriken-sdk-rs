@@ -33,7 +33,11 @@ pub(crate) async fn http_post(
     path: &str,
     body: &impl serde::Serialize,
 ) -> Result<serde_json::Value, ShurikenError> {
-    let url = format!("{base_url}{path}");
+    let url = if path.starts_with("http://") || path.starts_with("https://") {
+        path.to_string()
+    } else {
+        format!("{base_url}{path}")
+    };
     let resp = http.post(&url).json(body).send().await?;
     let status = resp.status();
     if status == reqwest::StatusCode::UNAUTHORIZED {
