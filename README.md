@@ -18,6 +18,8 @@ shuriken-sdk = "0.3"
 
 ## Quick start
 
+For runnable examples, see [Shuriken Quickstart RS](https://github.com/ShurikenTrade/shuriken-quickstart-rs)
+
 ```rust
 use shuriken_sdk::ShurikenHttpClient;
 
