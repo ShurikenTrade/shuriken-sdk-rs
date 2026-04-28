@@ -25,3 +25,4 @@ pub use http::swap;
 pub use http::tasks;
 pub use http::tokens;
 pub use http::trigger;
+pub use http::wallet_groups;
