@@ -10,6 +10,10 @@ Public SDK for the Shuriken API (REST + WebSocket streams). Version 0.3.0.
    - **major** (0.3.0 -> 1.0.0): breaking changes (renamed types, removed streams, changed method signatures)
 2. **Update `README.md`** if the change affects the public API surface.
 
+## Releasing
+
+A version bump alone does not publish — pushing a `v*` git tag triggers a publish to crates.io. See [CONTRIBUTING.md](CONTRIBUTING.md) for the release procedure. **Never push a tag or run `cargo release` unless the user explicitly asks to release.**
+
 ## Build & check
 
 - Check: `cargo check` (REST only) / `cargo check --features ws` (with WebSocket)
