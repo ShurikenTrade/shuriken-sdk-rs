@@ -423,3 +423,93 @@ fn deserialize_swap_preset_solana() {
         _ => panic!("expected Solana variant"),
     }
 }
+
+// ── Wallet groups ──────────────────────────────────────────────────────────
+
+#[test]
+fn deserialize_wallet_group_record() {
+    let data = json!({
+        "groupId": "cmoige9wn0006glkr8bdr123d",
+        "name": "treasury",
+        "chain": "svm",
+        "walletIds": ["w1", "w2"],
+        "createdAt": "2026-04-28T09:58:37.224Z",
+        "updatedAt": "2026-04-28T10:51:37.162Z"
+    });
+    let group: shuriken_sdk::wallet_groups::WalletGroupRecord =
+        serde_json::from_value(data).unwrap();
+    assert_eq!(group.group_id, "cmoige9wn0006glkr8bdr123d");
+    assert_eq!(group.name, "treasury");
+    assert_eq!(group.chain.as_deref(), Some("svm"));
+    assert_eq!(group.wallet_ids.len(), 2);
+}
+
+#[test]
+fn deserialize_wallet_group_record_with_null_chain() {
+    let data = json!({
+        "groupId": "g1",
+        "name": "n",
+        "chain": null,
+        "walletIds": [],
+        "createdAt": "2026-04-28T09:58:37.224Z",
+        "updatedAt": "2026-04-28T09:58:37.224Z"
+    });
+    let group: shuriken_sdk::wallet_groups::WalletGroupRecord =
+        serde_json::from_value(data).unwrap();
+    assert!(group.chain.is_none());
+    assert!(group.wallet_ids.is_empty());
+}
+
+#[test]
+fn deserialize_delete_wallet_group_response() {
+    let data = json!({ "groupId": "cmoige9wn0006glkr8bdr123d" });
+    let resp: shuriken_sdk::wallet_groups::DeleteWalletGroupResponse =
+        serde_json::from_value(data).unwrap();
+    assert_eq!(resp.group_id, "cmoige9wn0006glkr8bdr123d");
+}
+
+#[test]
+fn create_wallet_group_with_wallets_body_serializes_camel_case() {
+    let body = shuriken_sdk::wallet_groups::CreateWalletGroupWithWalletsBody {
+        name: "treasury".to_string(),
+        chain: "svm".to_string(),
+        wallet_count: 4,
+    };
+    let json_str = serde_json::to_string(&body).unwrap();
+    assert!(json_str.contains("\"walletCount\":4"));
+    assert!(json_str.contains("\"chain\":\"svm\""));
+}
+
+#[test]
+fn create_wallet_group_body_omits_none_fields() {
+    let body = shuriken_sdk::wallet_groups::CreateWalletGroupBody {
+        name: "n".to_string(),
+        chain: None,
+        wallet_ids: None,
+    };
+    let json_str = serde_json::to_string(&body).unwrap();
+    assert!(!json_str.contains("chain"));
+    assert!(!json_str.contains("walletIds"));
+}
+
+#[test]
+fn add_wallets_body_camel_case_with_position() {
+    let body = shuriken_sdk::wallet_groups::AddWalletsToGroupBody {
+        wallet_ids: vec!["w1".to_string()],
+        position: Some(0),
+    };
+    let json_str = serde_json::to_string(&body).unwrap();
+    assert!(json_str.contains("\"walletIds\":[\"w1\"]"));
+    assert!(json_str.contains("\"position\":0"));
+}
+
+#[test]
+fn move_wallet_body_omits_none_fields() {
+    let body = shuriken_sdk::wallet_groups::MoveWalletBody {
+        from_group_id: None,
+        to_group_id: Some("g2".to_string()),
+    };
+    let json_str = serde_json::to_string(&body).unwrap();
+    assert!(!json_str.contains("fromGroupId"));
+    assert!(json_str.contains("\"toGroupId\":\"g2\""));
+}

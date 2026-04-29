@@ -156,6 +156,68 @@ let detail = client.trigger().get("order_id").await?;
 let cancelled = client.trigger().cancel("order_id").await?;
 ```
 
+## Wallet groups
+
+```rust
+use shuriken_sdk::wallet_groups::*;
+
+// List groups (optional chain filter)
+let groups = client.wallet_groups().list(None).await?;
+let svm_groups = client.wallet_groups().list(Some("svm")).await?;
+
+// Create empty / pre-populated
+let empty = client.wallet_groups()
+    .create(&CreateWalletGroupBody {
+        name: "treasury".into(),
+        chain: Some("svm".into()),
+        wallet_ids: None,
+    })
+    .await?;
+
+// Atomically generate N fresh wallets and a group containing them
+// (single transaction — no orphans on partial failure)
+let generated = client.wallet_groups()
+    .create_with_wallets(&CreateWalletGroupWithWalletsBody {
+        name: "fresh-treasury".into(),
+        chain: "svm".into(),
+        wallet_count: 4,
+    })
+    .await?;
+
+// Membership management
+client.wallet_groups()
+    .add_wallets(&group.group_id, &AddWalletsToGroupBody {
+        wallet_ids: vec!["w3".into()],
+        position: None,
+    })
+    .await?;
+
+client.wallet_groups()
+    .reorder_wallets(&group.group_id, &ReorderWalletsInGroupBody {
+        wallet_ids: vec!["w2".into(), "w1".into()], // must equal current membership
+    })
+    .await?;
+
+// Move a wallet between groups
+client.wallet_groups()
+    .move_wallet("wallet_1", &MoveWalletBody {
+        from_group_id: None,
+        to_group_id: Some(group.group_id.clone()),
+    })
+    .await?;
+
+// Rename / delete
+client.wallet_groups().update(&group.group_id, &UpdateWalletGroupBody {
+    name: Some("renamed".into()),
+}).await?;
+client.wallet_groups().delete(&group.group_id).await?; // idempotent
+```
+
+> **Scope:** each endpoint accepts either `read:wallets` / `write:wallets` or
+> the focused `manage:wallet-groups` scope. A treasury-management key with
+> only `manage:wallet-groups` can do full group CRUD without granting the
+> broader wallet-address read surface.
+
 ## Perps
 
 ```rust
