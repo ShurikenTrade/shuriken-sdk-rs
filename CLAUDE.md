@@ -12,7 +12,33 @@ Public SDK for the Shuriken API (REST + WebSocket streams). Version 0.3.0.
 
 ## Releasing
 
-A version bump alone does not publish — pushing a `v*` git tag triggers a publish to crates.io. See [CONTRIBUTING.md](CONTRIBUTING.md) for the release procedure. **Never push a tag or run `cargo release` unless the user explicitly asks to release.**
+A version bump alone does not publish — pushing a `v*` git tag triggers a publish to crates.io. **Never push a tag or run `cargo release` unless the user explicitly asks to release.**
+
+When the user asks to release, pick one of two routes (both detailed in [CONTRIBUTING.md](CONTRIBUTING.md)):
+
+### Manual route — version bumped inside a feature PR
+
+Use when the change needs code review (default).
+
+1. Bump `Cargo.toml` inside the feature commit (this is already step 1 of "After every change" above).
+2. Open a PR, get it merged into `main`.
+3. From a clean local `main` synced with `origin/main`:
+   ```sh
+   git checkout main && git pull
+   git tag v0.10.0      # must exactly match the version in Cargo.toml
+   git push origin v0.10.0
+   ```
+4. CI verifies tag/version parity and publishes.
+
+### Automatic route — `cargo release`, no PR
+
+Use only when the change is trivial enough to skip review (e.g. dependency bump, docs typo) and the work is already directly on `main`.
+
+```sh
+cargo release minor --execute   # bumps Cargo.toml + commits + tags + pushes in one shot
+```
+
+Bypasses code review. Pre-condition: clean `main` synced with `origin/main`, no unmerged feature branches.
 
 ## Build & check
 
