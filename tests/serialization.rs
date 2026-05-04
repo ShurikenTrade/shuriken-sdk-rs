@@ -513,3 +513,271 @@ fn move_wallet_body_omits_none_fields() {
     assert!(!json_str.contains("fromGroupId"));
     assert!(json_str.contains("\"toGroupId\":\"g2\""));
 }
+
+// ─── wallets (archive lifecycle) ───────────────────────────────────────────
+
+#[test]
+fn wallet_record_round_trips_camel_case() {
+    let json = serde_json::json!({
+        "walletId": "w1",
+        "address": "0xabc",
+        "chain": "base",
+        "label": "treasury",
+        "state": "ARCHIVED",
+        "archivedAt": "2026-05-04T12:00:00Z"
+    });
+    let w: shuriken_sdk::wallets::WalletRecord = serde_json::from_value(json).unwrap();
+    assert_eq!(w.wallet_id, "w1");
+    assert_eq!(w.state, "ARCHIVED");
+    assert_eq!(w.archived_at.as_deref(), Some("2026-05-04T12:00:00Z"));
+}
+
+#[test]
+fn wallet_record_active_omits_archived_at() {
+    let json = serde_json::json!({
+        "walletId": "w1",
+        "address": "0xabc",
+        "state": "ACTIVE"
+    });
+    let w: shuriken_sdk::wallets::WalletRecord = serde_json::from_value(json).unwrap();
+    assert_eq!(w.state, "ACTIVE");
+    assert!(w.archived_at.is_none());
+    assert!(w.chain.is_none());
+    assert!(w.label.is_none());
+}
+
+#[test]
+fn archive_response_carries_cleared_default() {
+    let json = serde_json::json!({
+        "wallet": {
+            "walletId": "w1",
+            "address": "abc",
+            "state": "ARCHIVED",
+            "archivedAt": "2026-05-04T12:00:00Z"
+        },
+        "clearedDefault": true
+    });
+    let r: shuriken_sdk::wallets::ArchiveResponse = serde_json::from_value(json).unwrap();
+    assert_eq!(r.wallet.wallet_id, "w1");
+    assert!(r.cleared_default);
+}
+
+#[test]
+fn bulk_archive_request_serializes_camel_case() {
+    let body = shuriken_sdk::wallets::BulkArchiveRequest {
+        wallet_ids: vec!["w1".into(), "w2".into()],
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(s.contains("\"walletIds\":[\"w1\",\"w2\"]"));
+}
+
+#[test]
+fn bulk_archive_entry_omits_cleared_default_when_none() {
+    let json = serde_json::json!({
+        "walletId": "w1",
+        "status": "already_archived"
+    });
+    let e: shuriken_sdk::wallets::BulkArchiveEntry = serde_json::from_value(json).unwrap();
+    assert_eq!(e.status, "already_archived");
+    assert!(e.cleared_default.is_none());
+}
+
+// ─── transfers ─────────────────────────────────────────────────────────────
+
+#[test]
+fn send_body_full_serializes_camel_case() {
+    let body = shuriken_sdk::transfers::SendBody {
+        from_wallet_id: "wa".into(),
+        to_wallet_id: "wb".into(),
+        token: "USDC".into(),
+        amount: "1000000".into(),
+        chain: "EVM".into(),
+        chain_id: Some(8453),
+        await_result: Some(false),
+        correlation_id: Some("corr-123".into()),
+        agent_comment: Some("topup".into()),
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(s.contains("\"fromWalletId\":\"wa\""));
+    assert!(s.contains("\"toWalletId\":\"wb\""));
+    assert!(s.contains("\"chainId\":8453"));
+    assert!(s.contains("\"awaitResult\":false"));
+    assert!(s.contains("\"correlationId\":\"corr-123\""));
+    assert!(s.contains("\"agentComment\":\"topup\""));
+}
+
+#[test]
+fn send_body_minimal_omits_optional_fields() {
+    let body = shuriken_sdk::transfers::SendBody {
+        from_wallet_id: "wa".into(),
+        to_wallet_id: "wb".into(),
+        token: "SOL".into(),
+        amount: "1000000000".into(),
+        chain: "SVM".into(),
+        chain_id: None,
+        await_result: None,
+        correlation_id: None,
+        agent_comment: None,
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(!s.contains("chainId"));
+    assert!(!s.contains("awaitResult"));
+    assert!(!s.contains("correlationId"));
+    assert!(!s.contains("agentComment"));
+}
+
+#[test]
+fn retire_wallet_body_minimal_omits_optional_fields() {
+    let body = shuriken_sdk::transfers::RetireWalletBody {
+        from_wallet_id: "wa".into(),
+        to_wallet_id: "wb".into(),
+        token: "native".into(),
+        chain: "SVM".into(),
+        chain_id: None,
+        await_result: None,
+        correlation_id: None,
+        agent_comment: None,
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(!s.contains("chainId"));
+    assert!(!s.contains("awaitResult"));
+}
+
+#[test]
+fn transfer_result_success_carries_transaction() {
+    let json = serde_json::json!({
+        "taskId": "t-1",
+        "status": "SUCCESS",
+        "willArchiveOnSuccess": false,
+        "transaction": {"hash": "0xabc", "explorerUrl": "https://basescan.org/tx/0xabc"}
+    });
+    let r: shuriken_sdk::transfers::TransferResult = serde_json::from_value(json).unwrap();
+    assert_eq!(r.task_id, "t-1");
+    assert_eq!(r.status, "SUCCESS");
+    let txn = r.transaction.expect("transaction present on success");
+    assert_eq!(txn.hash, "0xabc");
+    assert_eq!(
+        txn.explorer_url.as_deref(),
+        Some("https://basescan.org/tx/0xabc")
+    );
+    assert!(r.error.is_none());
+}
+
+#[test]
+fn transfer_result_failed_carries_error() {
+    let json = serde_json::json!({
+        "taskId": "t-2",
+        "status": "FAILED",
+        "willArchiveOnSuccess": true,
+        "error": {"code": "INSUFFICIENT_BALANCE_FOR_GAS", "message": "Not enough gas"}
+    });
+    let r: shuriken_sdk::transfers::TransferResult = serde_json::from_value(json).unwrap();
+    let err = r.error.expect("error present on failure");
+    assert_eq!(err.code, "INSUFFICIENT_BALANCE_FOR_GAS");
+    assert!(r.transaction.is_none());
+    assert!(r.will_archive_on_success);
+}
+
+#[test]
+fn transfer_result_pending_no_settlement() {
+    let json = serde_json::json!({
+        "taskId": "t-3",
+        "status": "PENDING",
+        "willArchiveOnSuccess": false
+    });
+    let r: shuriken_sdk::transfers::TransferResult = serde_json::from_value(json).unwrap();
+    assert_eq!(r.status, "PENDING");
+    assert!(r.transaction.is_none());
+    assert!(r.error.is_none());
+}
+
+// ─── splits ────────────────────────────────────────────────────────────────
+
+#[test]
+fn plan_split_body_with_inline_destinations_serializes_camel_case() {
+    let body = shuriken_sdk::splits::PlanSplitBody {
+        source_wallet_id: "src".into(),
+        destination_group_id: None,
+        destinations: Some(vec![
+            shuriken_sdk::splits::PlanSplitDestination {
+                wallet_id: "d1".into(),
+                pct_bips: 5_000,
+            },
+            shuriken_sdk::splits::PlanSplitDestination {
+                wallet_id: "d2".into(),
+                pct_bips: 5_000,
+            },
+        ]),
+        from_amount: "0.16".into(),
+        from_asset: "sol".into(),
+        agent_comment: None,
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(s.contains("\"sourceWalletId\":\"src\""));
+    assert!(s.contains("\"fromAmount\":\"0.16\""));
+    assert!(s.contains("\"fromAsset\":\"sol\""));
+    assert!(s.contains("\"pctBips\":5000"));
+    assert!(s.contains("\"walletId\":\"d1\""));
+    assert!(!s.contains("destinationGroupId"));
+    assert!(!s.contains("agentComment"));
+}
+
+#[test]
+fn plan_split_body_with_group_omits_destinations() {
+    let body = shuriken_sdk::splits::PlanSplitBody {
+        source_wallet_id: "src".into(),
+        destination_group_id: Some("g1".into()),
+        destinations: None,
+        from_amount: "0.5".into(),
+        from_asset: "sol".into(),
+        agent_comment: Some("daily fan-out".into()),
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(s.contains("\"destinationGroupId\":\"g1\""));
+    assert!(!s.contains("\"destinations\""));
+    assert!(s.contains("\"agentComment\":\"daily fan-out\""));
+}
+
+#[test]
+fn plan_split_result_round_trips() {
+    let json = serde_json::json!({
+        "planId": "p-1",
+        "destinationCount": 2,
+        "summary": "Split 0.16 SOL from src across 2 destinations",
+        "rates": [
+            {"exchangerId": "binance", "exchangeRate": "1.0", "toAssetId": "sol", "toNetworkId": "solana"},
+            {"exchangerId": "bybit", "exchangeRate": "0", "toAssetId": "sol", "toNetworkId": "solana"}
+        ],
+        "warnings": [],
+        "expiresAt": "2026-05-04T13:00:00Z",
+        "expiresInSeconds": 60
+    });
+    let r: shuriken_sdk::splits::PlanSplitResult = serde_json::from_value(json).unwrap();
+    assert_eq!(r.plan_id, "p-1");
+    assert_eq!(r.destination_count, 2);
+    assert_eq!(r.expires_in_seconds, 60);
+    assert_eq!(r.rates.len(), 2);
+    assert_eq!(r.rates[0].exchanger_id, "binance");
+}
+
+#[test]
+fn execute_split_body_omits_optional_agent_comment() {
+    let body = shuriken_sdk::splits::ExecuteSplitBody {
+        plan_id: "p-1".into(),
+        agent_comment: None,
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(s.contains("\"planId\":\"p-1\""));
+    assert!(!s.contains("agentComment"));
+}
+
+#[test]
+fn execute_split_result_round_trips() {
+    let json = serde_json::json!({
+        "taskId": "t-99",
+        "splitnowOrderId": "abc123"
+    });
+    let r: shuriken_sdk::splits::ExecuteSplitResult = serde_json::from_value(json).unwrap();
+    assert_eq!(r.task_id, "t-99");
+    assert_eq!(r.splitnow_order_id, "abc123");
+}

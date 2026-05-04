@@ -1,11 +1,14 @@
 pub mod account;
 pub mod perps;
 pub mod portfolio;
+pub mod splits;
 pub mod swap;
 pub mod tasks;
 pub mod tokens;
+pub mod transfers;
 pub mod trigger;
 pub mod wallet_groups;
+pub mod wallets;
 
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
@@ -73,6 +76,18 @@ impl ShurikenHttpClient {
 
     pub fn wallet_groups(&self) -> wallet_groups::WalletGroupsApi<'_> {
         wallet_groups::WalletGroupsApi(self)
+    }
+
+    pub fn wallets(&self) -> wallets::WalletsApi<'_> {
+        wallets::WalletsApi(self)
+    }
+
+    pub fn transfers(&self) -> transfers::TransfersApi<'_> {
+        transfers::TransfersApi(self)
+    }
+
+    pub fn splits(&self) -> splits::SplitsApi<'_> {
+        splits::SplitsApi(self)
     }
 
     // ── HTTP helpers ───────────────────────────────────────────────────────
