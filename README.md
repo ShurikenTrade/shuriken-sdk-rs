@@ -218,6 +218,109 @@ client.wallet_groups().delete(&group.group_id).await?; // idempotent
 > only `manage:wallet-groups` can do full group CRUD without granting the
 > broader wallet-address read surface.
 
+## Wallet archive lifecycle
+
+```rust
+use shuriken_sdk::wallets::*;
+
+// Soft-archive a single wallet
+let archived = client.wallets().archive("wallet_1").await?;
+// archived.wallet.state == "ARCHIVED"
+// archived.cleared_default == true if this was the user's default
+
+// Restore an archived wallet
+let restored = client.wallets().unarchive("wallet_1").await?;
+
+// Bulk-archive up to 100 wallets in one round-trip
+let batch = client.wallets()
+    .bulk_archive(&BulkArchiveRequest {
+        wallet_ids: vec!["wallet_2".into(), "wallet_3".into()],
+    })
+    .await?;
+// batch.results[i].status == "archived" | "already_archived"
+```
+
+> **Scope:** all three endpoints require `write:wallets`.
+
+## Wallet-to-wallet transfers
+
+```rust
+use shuriken_sdk::transfers::*;
+
+// Send a fixed amount from one wallet to another. await_result: true (default
+// server-side) blocks until the task reaches a terminal state.
+let result = client.transfers()
+    .send(&SendBody {
+        from_wallet_id: "wallet_a".into(),
+        to_wallet_id: "wallet_b".into(),
+        token: "USDC".into(),
+        amount: "1000000".into(),       // raw base units (USDC = 6 decimals)
+        chain: "EVM".into(),
+        chain_id: Some(8453),           // Base
+        await_result: Some(true),
+        correlation_id: None,           // omit to auto-derive (5-min bucket)
+        agent_comment: Some("topup destination wallet".into()),
+    })
+    .await?;
+// result.status == "SUCCESS" | "FAILED" | "PENDING"
+// result.transaction.hash on success; result.error.code on failure
+
+// Drain the source's full balance of one token, then archive the source.
+let retire = client.transfers()
+    .retire_wallet(&RetireWalletBody {
+        from_wallet_id: "wallet_old".into(),
+        to_wallet_id: "wallet_new".into(),
+        token: "native".into(),
+        chain: "SVM".into(),
+        chain_id: None,
+        await_result: Some(true),
+        correlation_id: None,
+        agent_comment: None,
+    })
+    .await?;
+// retire.will_archive_on_success == true
+```
+
+> **Scope:** both endpoints require `transfer:write`.
+
+## SplitNOW splits (cross-chain)
+
+Two-step flow: `plan` reserves a 60-second SplitNOW quote and returns a
+`plan_id`; `execute` consumes the plan and submits the order task.
+
+```rust
+use shuriken_sdk::splits::*;
+
+// Step 1 — plan
+let plan = client.splits()
+    .plan(&PlanSplitBody {
+        source_wallet_id: "wallet_src".into(),
+        destination_group_id: None,
+        destinations: Some(vec![
+            PlanSplitDestination { wallet_id: "wallet_d1".into(), pct_bips: 5_000 },
+            PlanSplitDestination { wallet_id: "wallet_d2".into(), pct_bips: 5_000 },
+        ]),
+        from_amount: "0.16".into(),
+        from_asset: "sol".into(),
+        agent_comment: None,
+    })
+    .await?;
+// plan.plan_id, plan.expires_in_seconds == 60, plan.rates: Vec<PlanSplitRate>
+
+// Step 2 — execute (within 60s)
+let result = client.splits()
+    .execute(&ExecuteSplitBody {
+        plan_id: plan.plan_id,
+        agent_comment: Some("daily fan-out".into()),
+    })
+    .await?;
+// poll client.tasks().get(&result.task_id) for lifecycle updates
+```
+
+> **Scopes:** `split:plan` for `plan` (no funds move), `split:execute` for
+> `execute` (funds route through SplitNOW). Deployments without `agent_kit` /
+> `api_v2` enabled return HTTP 503 `SPLIT_DISABLED`.
+
 ## Perps
 
 ```rust
