@@ -781,3 +781,234 @@ fn execute_split_result_round_trips() {
     assert_eq!(r.task_id, "t-99");
     assert_eq!(r.splitnow_order_id, "abc123");
 }
+
+// ─── suggestions ───────────────────────────────────────────────────────────
+
+#[test]
+fn create_suggestion_request_round_trips_with_camel_case() {
+    let body = shuriken_sdk::suggestions::CreateSuggestionRequest {
+        side: shuriken_sdk::suggestions::SuggestionSide::Buy,
+        network_id: "SOL".into(),
+        asset: "So11111111111111111111111111111111111111112".into(),
+        rationale: "Funding flipped positive after a flush.".into(),
+        amount_in_usd: Some(250.0),
+        confidence: Some(shuriken_sdk::suggestions::SuggestionConfidence::Medium),
+    };
+    let v = serde_json::to_value(&body).unwrap();
+    assert_eq!(v["side"], "BUY");
+    assert_eq!(v["networkId"], "SOL");
+    assert_eq!(v["asset"], "So11111111111111111111111111111111111111112");
+    assert_eq!(v["rationale"], "Funding flipped positive after a flush.");
+    assert_eq!(v["amountInUsd"], 250.0);
+    assert_eq!(v["confidence"], "MEDIUM");
+
+    // Round-trip back through deserialise.
+    let back: shuriken_sdk::suggestions::CreateSuggestionRequest =
+        serde_json::from_value(v).unwrap();
+    assert_eq!(back.network_id, "SOL");
+    assert_eq!(back.side, shuriken_sdk::suggestions::SuggestionSide::Buy);
+    assert_eq!(
+        back.confidence,
+        Some(shuriken_sdk::suggestions::SuggestionConfidence::Medium)
+    );
+}
+
+#[test]
+fn create_suggestion_request_omits_none_optionals() {
+    let body = shuriken_sdk::suggestions::CreateSuggestionRequest {
+        side: shuriken_sdk::suggestions::SuggestionSide::Sell,
+        network_id: "BASE".into(),
+        asset: "0xabc".into(),
+        rationale: "Take profit.".into(),
+        amount_in_usd: None,
+        confidence: None,
+    };
+    let s = serde_json::to_string(&body).unwrap();
+    assert!(s.contains("\"side\":\"SELL\""));
+    assert!(s.contains("\"networkId\":\"BASE\""));
+    assert!(!s.contains("amountInUsd"));
+    assert!(!s.contains("confidence"));
+}
+
+#[test]
+fn trade_suggestion_deserialises_full_shape() {
+    let data = json!({
+        "id": "sug_01h8mxnkv1qz3sb0r5e0f7n4ck",
+        "state": "OPEN",
+        "createdAt": "2026-05-09T12:00:00.000Z",
+        "expiresAt": "2026-05-09T18:00:00.000Z",
+        "actedAt": null,
+        "dismissedAt": null,
+        "dismissReason": null,
+        "linkedTaskId": null,
+        "side": "BUY",
+        "networkId": "SOL",
+        "asset": {
+            "address": "So11111111111111111111111111111111111111112",
+            "symbol": "SOL",
+            "name": "Solana",
+            "priceUsd": 162.34
+        },
+        "rationale": "Funding flipped positive after a flush.",
+        "amountInUsd": 250.0,
+        "confidence": "MEDIUM",
+        "agentKey": { "id": "ak_123", "name": "alpha-scout" }
+    });
+    let s: shuriken_sdk::suggestions::TradeSuggestion = serde_json::from_value(data).unwrap();
+    assert_eq!(s.id, "sug_01h8mxnkv1qz3sb0r5e0f7n4ck");
+    assert_eq!(s.state, shuriken_sdk::suggestions::SuggestionState::Open);
+    assert_eq!(s.side, shuriken_sdk::suggestions::SuggestionSide::Buy);
+    assert_eq!(s.network_id, "SOL");
+    assert_eq!(s.asset.symbol, "SOL");
+    assert_eq!(s.asset.price_usd, Some(162.34));
+    assert_eq!(s.amount_in_usd, Some(250.0));
+    assert_eq!(
+        s.confidence,
+        Some(shuriken_sdk::suggestions::SuggestionConfidence::Medium)
+    );
+    assert_eq!(s.agent_key.id, "ak_123");
+    assert_eq!(s.agent_key.name.as_deref(), Some("alpha-scout"));
+    assert!(s.acted_at.is_none());
+    assert!(s.dismissed_at.is_none());
+    assert!(s.dismiss_reason.is_none());
+    assert!(s.linked_task_id.is_none());
+}
+
+#[test]
+fn trade_suggestion_deserialises_with_null_nullables() {
+    let data = json!({
+        "id": "sug_1",
+        "state": "DISMISSED",
+        "createdAt": "2026-05-09T12:00:00.000Z",
+        "expiresAt": "2026-05-09T18:00:00.000Z",
+        "actedAt": null,
+        "dismissedAt": "2026-05-09T12:30:00.000Z",
+        "dismissReason": "too risky",
+        "linkedTaskId": null,
+        "side": "SELL",
+        "networkId": "BASE",
+        "asset": {
+            "address": "0xabc",
+            "symbol": "WETH",
+            "name": "Wrapped Ether",
+            "priceUsd": null
+        },
+        "rationale": "Resistance reclaim failed.",
+        "amountInUsd": null,
+        "confidence": null,
+        "agentKey": { "id": "ak_42", "name": null }
+    });
+    let s: shuriken_sdk::suggestions::TradeSuggestion = serde_json::from_value(data).unwrap();
+    assert_eq!(
+        s.state,
+        shuriken_sdk::suggestions::SuggestionState::Dismissed
+    );
+    assert_eq!(s.dismiss_reason.as_deref(), Some("too risky"));
+    assert!(s.amount_in_usd.is_none());
+    assert!(s.confidence.is_none());
+    assert!(s.asset.price_usd.is_none());
+    assert!(s.agent_key.name.is_none());
+}
+
+#[test]
+fn list_suggestions_query_omits_none_params() {
+    let q = shuriken_sdk::suggestions::ListSuggestionsQuery::default();
+    let s = serde_json::to_string(&q).unwrap();
+    assert_eq!(s, "{}");
+
+    let q2 = shuriken_sdk::suggestions::ListSuggestionsQuery {
+        state: Some("ALL".into()),
+        limit: None,
+        cursor: None,
+    };
+    let s2 = serde_json::to_string(&q2).unwrap();
+    assert!(s2.contains("\"state\":\"ALL\""));
+    assert!(!s2.contains("limit"));
+    assert!(!s2.contains("cursor"));
+}
+
+#[test]
+fn list_suggestions_response_round_trips() {
+    let data = json!({
+        "suggestions": [],
+        "nextCursor": "cursor_abc"
+    });
+    let r: shuriken_sdk::suggestions::ListSuggestionsResponse =
+        serde_json::from_value(data).unwrap();
+    assert!(r.suggestions.is_empty());
+    assert_eq!(r.next_cursor.as_deref(), Some("cursor_abc"));
+
+    // Missing nextCursor is treated as None.
+    let data2 = json!({ "suggestions": [] });
+    let r2: shuriken_sdk::suggestions::ListSuggestionsResponse =
+        serde_json::from_value(data2).unwrap();
+    assert!(r2.next_cursor.is_none());
+}
+
+#[test]
+fn suggestion_state_serialises_uppercase() {
+    assert_eq!(
+        serde_json::to_value(shuriken_sdk::suggestions::SuggestionState::Open).unwrap(),
+        json!("OPEN")
+    );
+    assert_eq!(
+        serde_json::to_value(shuriken_sdk::suggestions::SuggestionState::Acted).unwrap(),
+        json!("ACTED")
+    );
+    assert_eq!(
+        serde_json::to_value(shuriken_sdk::suggestions::SuggestionState::Dismissed).unwrap(),
+        json!("DISMISSED")
+    );
+    assert_eq!(
+        serde_json::to_value(shuriken_sdk::suggestions::SuggestionState::Expired).unwrap(),
+        json!("EXPIRED")
+    );
+    assert_eq!(
+        serde_json::to_value(shuriken_sdk::suggestions::SuggestionSide::Buy).unwrap(),
+        json!("BUY")
+    );
+    assert_eq!(
+        serde_json::to_value(shuriken_sdk::suggestions::SuggestionConfidence::High).unwrap(),
+        json!("HIGH")
+    );
+}
+
+#[test]
+fn dismiss_body_omits_reason_when_none() {
+    // Mirror the server contract: empty body when reason is absent.
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct DismissBodyMirror {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        reason: Option<String>,
+    }
+    let empty = serde_json::to_string(&DismissBodyMirror { reason: None }).unwrap();
+    assert_eq!(empty, "{}");
+
+    let with = serde_json::to_string(&DismissBodyMirror {
+        reason: Some("too risky".into()),
+    })
+    .unwrap();
+    assert_eq!(with, "{\"reason\":\"too risky\"}");
+}
+
+#[test]
+fn ack_body_omits_linked_task_id_when_none() {
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct AckBodyMirror {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        linked_task_id: Option<String>,
+    }
+    let empty = serde_json::to_string(&AckBodyMirror {
+        linked_task_id: None,
+    })
+    .unwrap();
+    assert_eq!(empty, "{}");
+
+    let with = serde_json::to_string(&AckBodyMirror {
+        linked_task_id: Some("task_999".into()),
+    })
+    .unwrap();
+    assert_eq!(with, "{\"linkedTaskId\":\"task_999\"}");
+}
