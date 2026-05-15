@@ -22,6 +22,7 @@ pub use http::account;
 pub use http::perps;
 pub use http::portfolio;
 pub use http::splits;
+pub use http::suggestions;
 pub use http::swap;
 pub use http::tasks;
 pub use http::tokens;

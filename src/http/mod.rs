@@ -2,6 +2,7 @@ pub mod account;
 pub mod perps;
 pub mod portfolio;
 pub mod splits;
+pub mod suggestions;
 pub mod swap;
 pub mod tasks;
 pub mod tokens;
@@ -88,6 +89,10 @@ impl ShurikenHttpClient {
 
     pub fn splits(&self) -> splits::SplitsApi<'_> {
         splits::SplitsApi(self)
+    }
+
+    pub fn suggestions(&self) -> suggestions::SuggestionsApi<'_> {
+        suggestions::SuggestionsApi(self)
     }
 
     // ── HTTP helpers ───────────────────────────────────────────────────────

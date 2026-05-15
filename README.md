@@ -321,6 +321,49 @@ let result = client.splits()
 > `execute` (funds route through SplitNOW). Deployments without `agent_kit` /
 > `api_v2` enabled return HTTP 503 `SPLIT_DISABLED`.
 
+## Trade suggestions
+
+Agents post advisory trade ideas to the user; users ack (execute) or dismiss
+them from the terminal / tg-bot. The lifecycle states (`OPEN`, `ACTED`,
+`DISMISSED`, `EXPIRED`) are derived server-side from the suggestion's
+timestamps.
+
+```rust
+use shuriken_sdk::suggestions::*;
+
+// Post a new suggestion
+let suggestion = client.suggestions()
+    .create(&CreateSuggestionRequest {
+        side: SuggestionSide::Buy,
+        network_id: "SOL".into(),
+        asset: "So11111111111111111111111111111111111111112".into(),
+        rationale: "Funding flipped positive after a flush.".into(),
+        amount_in_usd: Some(250.0),
+        confidence: Some(SuggestionConfidence::Medium),
+    })
+    .await?;
+
+// List (defaults: state=OPEN, limit=50)
+let open = client.suggestions().list(None).await?;
+let acted = client.suggestions()
+    .list(Some(&ListSuggestionsQuery {
+        state: Some("ACTED".into()),
+        limit: Some(25),
+        cursor: None,
+    }))
+    .await?;
+
+// User acks — optionally link the resulting task ID
+client.suggestions().ack(&suggestion.id, Some("task_999".into())).await?;
+
+// Or dismiss with a free-form reason
+client.suggestions().dismiss(&suggestion.id, Some("too risky".into())).await?;
+```
+
+> **Scopes:** `write:suggestions` (create), `read:suggestions` (list),
+> `manage:suggestions` (ack / dismiss). Returns `409 SUGGESTION_NOT_OPEN`
+> on ack / dismiss if the suggestion is already acted / dismissed / expired.
+
 ## Perps
 
 ```rust
