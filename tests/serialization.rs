@@ -1012,3 +1012,297 @@ fn ack_body_omits_linked_task_id_when_none() {
     .unwrap();
     assert_eq!(with, "{\"linkedTaskId\":\"task_999\"}");
 }
+
+// ── Alpha ────────────────────────────────────────────────────────────────────
+
+#[test]
+fn deserialize_alpha_source_item_full() {
+    let data = json!({
+        "connectionId": "conn_abc123",
+        "connectionType": "discord",
+        "enabled": true,
+        "createdAt": "2026-01-15T10:00:00Z",
+        "name": "Alpha Calls Server",
+        "platform": "discord",
+        "source": "1234567890"
+    });
+    let item: shuriken_sdk::alpha::AlphaSourceItem = serde_json::from_value(data).unwrap();
+    assert_eq!(item.connection_id, "conn_abc123");
+    assert_eq!(item.connection_type, "discord");
+    assert!(item.enabled);
+    assert_eq!(item.created_at.as_deref(), Some("2026-01-15T10:00:00Z"));
+    assert_eq!(item.name.as_deref(), Some("Alpha Calls Server"));
+}
+
+#[test]
+fn deserialize_alpha_source_item_minimal() {
+    // Optional fields absent — should not error.
+    let data = json!({
+        "connectionId": "conn_xyz",
+        "connectionType": "telegram",
+        "enabled": false
+    });
+    let item: shuriken_sdk::alpha::AlphaSourceItem = serde_json::from_value(data).unwrap();
+    assert_eq!(item.connection_id, "conn_xyz");
+    assert!(!item.enabled);
+    assert!(item.created_at.is_none());
+    assert!(item.name.is_none());
+    assert!(item.platform.is_none());
+    assert!(item.source.is_none());
+}
+
+#[test]
+fn deserialize_alpha_sources_result() {
+    let data = json!({
+        "sources": [
+            {
+                "connectionId": "conn_1",
+                "connectionType": "discord",
+                "enabled": true
+            },
+            {
+                "connectionId": "conn_2",
+                "connectionType": "twitter",
+                "enabled": false
+            }
+        ]
+    });
+    let result: shuriken_sdk::alpha::AlphaSourcesResult = serde_json::from_value(data).unwrap();
+    assert_eq!(result.sources.len(), 2);
+    assert_eq!(result.sources[0].connection_id, "conn_1");
+    assert_eq!(result.sources[1].connection_type, "twitter");
+}
+
+#[test]
+fn deserialize_recent_calls_result() {
+    let data = json!({
+        "totalCount": 42,
+        "calls": [
+            {
+                "tokenAddress": "So111",
+                "tokenSymbol": "SOL",
+                "tokenName": "Wrapped SOL",
+                "chain": "svm",
+                "firstSeenAt": 1700000000_i64,
+                "lastSeenAt": 1700001000_i64,
+                "mentionCount": 7,
+                "priceUsdAtCall": "23.45",
+                "currentPriceUsd": "24.10",
+                "marketCapUsdAtCall": "10000000",
+                "liquidityUsdAtCall": "500000",
+                "lastSource": {
+                    "platform": "discord",
+                    "channelName": "#alpha",
+                    "authorUsername": "whale_caller",
+                    "messagePreview": "SOL looking good",
+                    "sourceName": "Alpha Server",
+                    "connectionId": "conn_1"
+                }
+            }
+        ]
+    });
+    let result: shuriken_sdk::alpha::RecentCallsResult = serde_json::from_value(data).unwrap();
+    assert_eq!(result.total_count, 42);
+    assert_eq!(result.calls.len(), 1);
+    let call = &result.calls[0];
+    assert_eq!(call.token_address, "So111");
+    assert_eq!(call.mention_count, 7);
+    assert_eq!(call.price_usd_at_call.as_deref(), Some("23.45"));
+    let src = call.last_source.as_ref().unwrap();
+    assert_eq!(src.platform, "discord");
+    assert_eq!(src.author_username.as_deref(), Some("whale_caller"));
+}
+
+#[test]
+fn deserialize_global_calls_result() {
+    let data = json!({
+        "platform": "twitter",
+        "totalCount": 100,
+        "calls": [
+            {
+                "tokenAddress": "EPjF",
+                "chain": "svm",
+                "firstSeenAt": 1700000000_i64,
+                "lastSeenAt": 1700002000_i64,
+                "mentionCount": 15,
+                "currentPriceUsd": "1.001",
+                "priceChangeSinceCallPct": "2.5",
+                "lastTweetAuthor": "@cryptoKOL",
+                "lastTweetPreview": "USDC stable and ready"
+            }
+        ]
+    });
+    let result: shuriken_sdk::alpha::GlobalCallsResult = serde_json::from_value(data).unwrap();
+    assert_eq!(result.platform, "twitter");
+    assert_eq!(result.total_count, 100);
+    assert_eq!(result.calls.len(), 1);
+    let call = &result.calls[0];
+    assert_eq!(call.last_tweet_author.as_deref(), Some("@cryptoKOL"));
+    assert_eq!(call.price_change_since_call_pct.as_deref(), Some("2.5"));
+}
+
+#[test]
+fn deserialize_call_context_result_with_full_signal() {
+    let data = json!({
+        "tokenAddress": "So111",
+        "totalSignals": 3,
+        "hasMore": true,
+        "nextCursor": 1700001000_i64,
+        "signals": [
+            {
+                "signalId": "sig_abc",
+                "timestampMs": 1700000000000_i64,
+                "platform": "discord",
+                "isBot": false,
+                "priceUsd": 23.45,
+                "marketCapUsd": 10000000.0,
+                "liquidityUsd": 500000.0,
+                "caller": {
+                    "username": "whale_user",
+                    "displayName": "Whale",
+                    "avatarUrl": "https://example.com/avatar.png",
+                    "verified": true
+                },
+                "source": {
+                    "guildId": "guild_1",
+                    "serverName": "Alpha Server",
+                    "channelId": "chan_1",
+                    "channelName": "#calls",
+                    "topicId": 42,
+                    "topicTitle": "Alpha Calls",
+                    "tweetId": null,
+                    "messageId": "msg_1"
+                },
+                "messagePreview": "SOL is pumping!",
+                "contextMessages": [
+                    {
+                        "author": "user1",
+                        "text": "GM everyone",
+                        "timestampMs": 1699999900000_i64,
+                        "offset": -1
+                    }
+                ]
+            }
+        ]
+    });
+    let result: shuriken_sdk::alpha::CallContextResult = serde_json::from_value(data).unwrap();
+    assert_eq!(result.token_address, "So111");
+    assert_eq!(result.total_signals, 3);
+    assert!(result.has_more);
+    assert_eq!(result.next_cursor, Some(1700001000));
+    assert_eq!(result.signals.len(), 1);
+    let sig = &result.signals[0];
+    assert_eq!(sig.signal_id, "sig_abc");
+    assert!(!sig.is_bot);
+    assert_eq!(sig.price_usd, Some(23.45));
+    let caller = sig.caller.as_ref().unwrap();
+    assert_eq!(caller.username.as_deref(), Some("whale_user"));
+    assert_eq!(caller.verified, Some(true));
+    let ctx = sig.context_messages.as_ref().unwrap();
+    assert_eq!(ctx.len(), 1);
+    assert_eq!(ctx[0].offset, -1);
+    assert_eq!(ctx[0].text, "GM everyone");
+}
+
+#[test]
+fn deserialize_call_context_signal_minimal() {
+    // On-chain / X signals have no messagePreview or contextMessages.
+    let data = json!({
+        "tokenAddress": "So111",
+        "totalSignals": 1,
+        "hasMore": false,
+        "signals": [
+            {
+                "signalId": "sig_onchain",
+                "timestampMs": 1700000000000_i64,
+                "platform": "onchain",
+                "isBot": true,
+                "tradeData": {
+                    "isBuy": true,
+                    "amountUsd": "5000.00",
+                    "amountNative": "200000000",
+                    "walletAddress": "7xKX...",
+                    "txSignature": "5abc..."
+                }
+            }
+        ]
+    });
+    let result: shuriken_sdk::alpha::CallContextResult = serde_json::from_value(data).unwrap();
+    let sig = &result.signals[0];
+    assert!(sig.is_bot);
+    assert!(sig.message_preview.is_none());
+    assert!(sig.context_messages.is_none());
+    let td = sig.trade_data.as_ref().unwrap();
+    assert!(td.is_buy);
+    assert_eq!(td.amount_usd, "5000.00");
+}
+
+#[test]
+fn deserialize_token_mentions_result() {
+    let data = json!({
+        "tokenAddress": "So111",
+        "tokenSymbol": "SOL",
+        "chain": "svm",
+        "totalMentions": 25,
+        "firstSeenAt": 1699000000_i64,
+        "lastSeenAt": 1700000000_i64,
+        "mentions": [
+            {
+                "messageId": "msg_abc",
+                "platform": "discord",
+                "timestamp": 1700000000_i64,
+                "channelId": "chan_1",
+                "guildId": "guild_1",
+                "authorUsername": "caller_1",
+                "priceUsdAtMention": "23.00",
+                "marketCapUsdAtMention": "9800000"
+            }
+        ]
+    });
+    let result: shuriken_sdk::alpha::TokenMentionsResult = serde_json::from_value(data).unwrap();
+    assert_eq!(result.token_address, "So111");
+    assert_eq!(result.token_symbol.as_deref(), Some("SOL"));
+    assert_eq!(result.total_mentions, 25);
+    assert_eq!(result.first_seen_at, Some(1699000000));
+    assert_eq!(result.mentions.len(), 1);
+    let m = &result.mentions[0];
+    assert_eq!(m.message_id, "msg_abc");
+    assert_eq!(m.price_usd_at_mention.as_deref(), Some("23.00"));
+}
+
+#[test]
+fn get_recent_calls_params_omits_none_fields() {
+    let params = shuriken_sdk::alpha::GetRecentCallsParams::default();
+    let s = serde_json::to_string(&params).unwrap();
+    assert_eq!(s, "{}");
+}
+
+#[test]
+fn get_recent_calls_params_serialises_camel_case() {
+    let params = shuriken_sdk::alpha::GetRecentCallsParams {
+        limit: Some(10),
+        source_name: Some("Alpha Server".into()),
+        connection_id: Some("conn_1".into()),
+    };
+    let s = serde_json::to_string(&params).unwrap();
+    assert!(s.contains("\"limit\":10"));
+    assert!(s.contains("\"sourceName\":\"Alpha Server\""));
+    assert!(s.contains("\"connectionId\":\"conn_1\""));
+    // No snake_case keys
+    assert!(!s.contains("source_name"));
+    assert!(!s.contains("connection_id"));
+}
+
+#[test]
+fn get_global_calls_params_omits_none_fields() {
+    let params = shuriken_sdk::alpha::GetGlobalCallsParams::default();
+    let s = serde_json::to_string(&params).unwrap();
+    assert_eq!(s, "{}");
+}
+
+#[test]
+fn get_token_mentions_params_omits_none_fields() {
+    let params = shuriken_sdk::alpha::GetTokenMentionsParams::default();
+    let s = serde_json::to_string(&params).unwrap();
+    assert_eq!(s, "{}");
+}

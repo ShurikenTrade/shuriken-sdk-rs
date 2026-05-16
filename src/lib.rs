@@ -19,6 +19,7 @@ pub use ws::{ConnectionState, ConnectionStateEvent};
 pub use shuriken_api_types as types;
 
 pub use http::account;
+pub use http::alpha;
 pub use http::perps;
 pub use http::portfolio;
 pub use http::splits;
