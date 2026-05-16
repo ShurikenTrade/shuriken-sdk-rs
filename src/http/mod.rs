@@ -1,4 +1,5 @@
 pub mod account;
+pub mod alpha;
 pub mod perps;
 pub mod portfolio;
 pub mod splits;
@@ -89,6 +90,10 @@ impl ShurikenHttpClient {
 
     pub fn splits(&self) -> splits::SplitsApi<'_> {
         splits::SplitsApi(self)
+    }
+
+    pub fn alpha(&self) -> alpha::AlphaApi<'_> {
+        alpha::AlphaApi(self)
     }
 
     pub fn suggestions(&self) -> suggestions::SuggestionsApi<'_> {

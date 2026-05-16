@@ -364,6 +364,61 @@ client.suggestions().dismiss(&suggestion.id, Some("too risky".into())).await?;
 > `manage:suggestions` (ack / dismiss). Returns `409 SUGGESTION_NOT_OPEN`
 > on ack / dismiss if the suggestion is already acted / dismissed / expired.
 
+
+## Alpha signals
+
+Exposes your connected alpha sources (Discord, Telegram, X/Twitter, on-chain wallet trackers)
+and the token-level call history they generate.
+
+```rust
+use shuriken_sdk::alpha::{GetRecentCallsParams, GetGlobalCallsParams, GetCallContextParams, GetTokenMentionsParams};
+
+// List your connected alpha sources
+let sources = client.alpha().get_sources().await?;
+println!("{} source(s)", sources.sources.len());
+
+// Recent calls from your personal connections
+let recent = client.alpha()
+    .get_recent_calls(GetRecentCallsParams {
+        limit: Some(10),
+        source_name: Some("Alpha Server".into()),
+        ..Default::default()
+    })
+    .await?;
+println!("{} call(s), total {}", recent.calls.len(), recent.total_count);
+
+// Global trending calls on a platform
+let global = client.alpha()
+    .get_global_calls(GetGlobalCallsParams {
+        platform: Some("twitter".into()),
+        limit: Some(20),
+    })
+    .await?;
+
+// Per-token signal history with optional context messages
+let ctx = client.alpha()
+    .get_call_context(
+        "So111...",
+        GetCallContextParams {
+            limit: Some(50),
+            source_filter: Some(vec!["discord".into(), "telegram".into()]),
+            include_message_context: Some(true),
+            ..Default::default()
+        },
+    )
+    .await?;
+if ctx.has_more {
+    // paginate with ctx.next_cursor
+}
+
+// All raw mention records for a token
+let mentions = client.alpha()
+    .get_token_mentions("So111...", GetTokenMentionsParams { limit: Some(100) })
+    .await?;
+```
+
+> **Scope:**  on the agent key.
+
 ## Perps
 
 ```rust
